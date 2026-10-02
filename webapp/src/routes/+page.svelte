@@ -39,6 +39,7 @@
   let fileOpen = $state(false);
   let deviceOpen = $state(false);
   let calibrating = $state(false);
+  let sequenceExpanded = $state(false);
   let filePane = $state<"main" | "open">("main");
   let saveDialog = $state(false);
   let newDialog = $state(false);
@@ -548,11 +549,27 @@
           </div>
         </Popover>
         <span class="current-project"
-          >{projectName || "Untitled signature"}{#if dirty}<i
+          >{projectName || "Untitled Haptic Signature"}{#if dirty}<i
               aria-label="Unsaved changes"
             ></i>{/if}</span
         >
       </div>
+      <button
+        class="sequence-meter"
+        class:expanded={sequenceExpanded}
+        aria-label="Expand sequence length"
+        aria-pressed={sequenceExpanded}
+        onclick={() => (sequenceExpanded = !sequenceExpanded)}
+      >
+        <span class="sequence-clock"
+          ><span>{(total / 1000).toFixed(2)}</span><small>/ 5.00 SEC</small
+          ></span
+        >
+        <span class="sequence-progress" aria-hidden="true"
+          ><span style:transform={`scaleX(${total / MAX_MS})`}></span></span
+        >
+        <span class="sequence-label">SEQUENCE LENGTH</span>
+      </button>
       <div class="top-right">
         {#if connected}
           <Popover
@@ -652,26 +669,17 @@
       />
     {:else}
       <div class="content">
-        <section class="hero">
+        <section class="hero" hidden>
           <div>
             <p class="kicker">01 / COMPOSE</p>
             <h1>Shape the <em>feel.</em></h1>
-            <p class="hero-copy">
+            <p class="hero-copy" hidden>
               Build a tactile signature, then feel it on hardware. Every moment
               lives on one five-second canvas.
             </p>
           </div>
-          <div class="hero-side">
-            <div class="clock-face">
-              <span>{(total / 1000).toFixed(2)}</span><small>/ 5.00 SEC</small>
-            </div>
-            <div class="meter">
-              <span style:transform={`scaleX(${total / MAX_MS})`}></span>
-            </div>
-            <p>SEQUENCE LENGTH</p>
-          </div>
         </section>
-        <p class="studio-notice" role="status">{notice}</p>
+        <p class="studio-notice" role="status" hidden>{notice}</p>
         {#if error}<div class="error-banner" role="alert">
             <strong>CHECK THIS</strong><span>{error}</span><button
               onclick={() => (error = "")}
@@ -937,28 +945,8 @@
             </section>
           </div>
         </div>
-        <section class="export-section">
-          <div class="section-head">
-            <span class="section-num">E</span>
-            <div>
-              <h2>Take it to firmware</h2>
-              <p>Generated C++ · Adafruit_DRV2605</p>
-            </div>
-            <button
-              class="copy-button"
-              onclick={copyCode}
-              disabled={!!validation}
-              >{copied ? "COPIED ✓" : "COPY CODE ↗"}</button
-            >
-          </div>
-          {#if validation}<div class="code-placeholder">
-              {validation}
-            </div>{:else}<pre><code>{code}</code></pre>{/if}
-        </section>
         <footer>
-          <span>HAPTIC STUDIO <i>©</i> 2026</span><span
-            >DESIGNED FOR FEEL. BUILT FOR ESP32-C3.</span
-          ><span>LOCAL BY DESIGN</span>
+          <span>LRA LAB</span><span>AddeyX</span><span>LOCAL BY DESIGN</span>
         </footer>
       </div>
     {/if}

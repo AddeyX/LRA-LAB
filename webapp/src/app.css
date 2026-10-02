@@ -1701,3 +1701,55 @@ footer i { color: var(--violet-bright); }
     font-size: 12px;
   }
 }
+
+/* Compact, centered sequence readout. */
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px minmax(0, 1fr);
+  gap: 24px;
+}
+.topbar .top-right { justify-self: end; }
+.sequence-meter {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 128px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transform-origin: center;
+  transition: transform 180ms cubic-bezier(.16, 1, .3, 1), background-color 180ms ease;
+}
+.sequence-meter:hover, .sequence-meter:focus-visible, .sequence-meter.expanded {
+  transform: scale(1.2);
+  background: #382d42;
+}
+.sequence-meter:focus-visible { outline: 2px solid var(--violet-bright); outline-offset: 3px; }
+.sequence-clock { display: flex; align-items: baseline; justify-content: center; gap: 5px; }
+.sequence-clock > span { font: 600 20px "Space Grotesk Variable", sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+.sequence-clock small { font: 600 8px "Space Grotesk Variable", sans-serif; color: var(--muted); }
+.sequence-progress { height: 3px; margin: 3px 0 5px; background: #51445a; border-radius: 2px; overflow: hidden; }
+.sequence-progress > span { display: block; width: 100%; height: 100%; background: var(--violet-bright); transform-origin: left; transition: transform 180ms ease; }
+.sequence-label { font: 600 8px "Space Grotesk Variable", sans-serif; letter-spacing: .06em; color: var(--muted); }
+@media (max-width: 1050px) {
+  .topbar { gap: 16px; padding-inline: 18px; }
+  .file-area { gap: 10px; }
+  .topbar .top-right { gap: 8px; }
+}
+@media (max-width: 760px) {
+  .topbar { grid-template-columns: minmax(0, 1fr) 128px minmax(0, 1fr); row-gap: 12px; }
+  .topbar .file-area { grid-column: 1 / -1; width: 100%; }
+  .topbar .current-project { max-width: calc(100vw - 130px); }
+  .sequence-meter { grid-column: 2; grid-row: 2; }
+  .topbar .top-right { grid-column: 1 / -1; grid-row: 3; width: 100%; justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sequence-meter, .sequence-progress > span { transition: none; }
+}
+
+.hero[hidden] { display: none; }
+
+.content { padding-top: clamp(24px, 3vw, 40px); }
