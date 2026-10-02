@@ -745,21 +745,6 @@
                     : "S"} · {Math.max(0, MAX_MS - total)} MS REMAINING</span
                 ><span>5000 MS</span>
               </div>
-              <div class="sequence-list">
-                {#each signature.blocks as block, index (block.id)}<button
-                    class:active={selectedId === block.id}
-                    onclick={() => (selectedId = block.id)}
-                    ><span class="order"
-                      >{String(index + 1).padStart(2, "0")}</span
-                    ><span class="mini-wave"
-                      >{block.type === "pulse" ? "〰" : "◆"}</span
-                    ><span class="list-name">{label(block)}</span><span
-                      class="list-time"
-                      >{block.startMs} MS <i>→</i>
-                      {block.startMs + blockDuration(block)} MS</span
-                    ></button
-                  >{/each}
-              </div>
             </section>
             <section class="inspector">
               <div class="section-head">
