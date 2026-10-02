@@ -1,8 +1,20 @@
-# Haptic Studio
+# LRA Lab web app
 
-Local editor for ESP32-C3 + DRV2605L + LRA. Compose one five-second track, preview on hardware, and copy Arduino C++ export.
+The web app is LRA Lab's local signature editor. It gives users a timeline for composing haptic patterns, a direct preview path to connected hardware, and Arduino C++ export. The current editor has one sequential track with a five-second limit.
 
-## Start
+## Stack and current setup
+
+- SvelteKit and Svelte 5 with TypeScript, built by Vite; `adapter-auto` handles the SvelteKit build.
+- `portal-bits` UI components and local CSS, with DM Sans and Space Grotesk variable fonts.
+- Browser Web Serial for direct USB connection to matching ESP32-C3 firmware. No app server API or user accounts.
+- Browser local storage for the active draft. Data stays in that browser profile; there is no cloud sync or project library.
+- Vitest for signature and serial tests, plus `svelte-check` for type and Svelte diagnostics.
+
+The editor currently supports built-in DRV2605L library 6 effects, custom pulses with editable amplitude keyframes, block timing and order controls, calibration status, preview and stop, and C++ export. Effects and pulses share one signature model. Browser validation, firmware validation, and generated C++ follow the same timing and amplitude rules. Blocks cannot overlap; gaps are allowed.
+
+## Run locally
+
+Requires Node.js, pnpm, and desktop Chrome or Edge with Web Serial support.
 
 ```sh
 cd webapp
@@ -10,41 +22,28 @@ pnpm install
 pnpm dev
 ```
 
-Open displayed `http://127.0.0.1` URL in desktop Chrome or Edge. Web Serial needs localhost and a supported browser. Draft saves in browser local storage. No account or server API.
+Open the local URL printed by Vite (bound to `127.0.0.1`). To feel a signature, first build and upload the matching [`firmware`](../firmware/README.md), connect the board, and select **Calibrate**. Add an effect or pulse, adjust it in **Shape & arrange**, then select **Preview**. **Stop** ends active playback. Close any serial monitor before connecting.
 
-## Firmware
+Editor use without a board is possible; hardware preview and calibration require the board. The active valid draft is saved in local storage and restored on reload. Copy C++ from **Take it to firmware** to integrate a signature into another Arduino project. Generated code expects an initialized and calibrated `Adafruit_DRV2605` instance.
 
-```sh
-cd hardware
-~/.platformio/penv/bin/pio run
-~/.platformio/penv/bin/pio run --target upload
-```
+## Code map
 
-Use your own `pio` path if PlatformIO installed elsewhere. Wire DRV2605L SDA to ESP32-C3 GPIO4, SCL to GPIO5, and power/ground per board requirements. Firmware assumes 170 Hz LRA, rated voltage register `0x32`, clamp `0x4F`; verify values against your actuator before driving it. In Studio: Connect board, Calibrate, add blocks, Preview. Close any serial monitor before connecting Studio.
+| Path | Role |
+| --- | --- |
+| [`src/routes/+page.svelte`](src/routes/+page.svelte) | Editor interface and workflow |
+| [`src/lib/signature.ts`](src/lib/signature.ts) | Signature schema, effect catalog, validation, amplitude math |
+| [`src/lib/serial.ts`](src/lib/serial.ts) | Web Serial connection and request/response handling |
+| [`src/lib/export.ts`](src/lib/export.ts) | Arduino C++ generation |
+| [`src/app.css`](src/app.css) | App styles |
 
-## Protocol
-
-115200 baud; newline-delimited JSON, protocol version 1. Example:
-
-```json
-{"protocolVersion":1,"requestId":1,"type":"HELLO"}
-{"protocolVersion":1,"requestId":2,"type":"LOAD","signature":{"schemaVersion":1,"blocks":[{"id":"click","type":"effect","startMs":0,"effectId":1}]}}
-{"protocolVersion":1,"requestId":3,"type":"PREVIEW"}
-```
-
-Responses include same request ID. `READY` includes readiness, calibration, profile, catalog version, and limits. `LOAD` stores valid signatures only. `PREVIEW` emits `PLAYING`, then `DONE`; `STOP` emits `STOPPED`. `CALIBRATE` emits `CALIBRATED` or `ERROR`. Firmware caps JSON line at 8192 bytes, duration at 5000 ms, blocks at 32, total pulse keyframes at 32, and enforces local wall-clock stop. Preview requires successful calibration.
-
-Effect names and IDs come from [TI DRV2605L datasheet](https://www.ti.com/lit/ds/symlink/drv2605l.pdf), library 6. TI explicitly specifies 750 ms and 1000 ms alert IDs. Other click/bump slot lengths are conservative UI allocations estimated from TI LRA response plots; exact ROM completion depends on actuator. Firmware stops each slot at its boundary.
+The app sends the full signature over 115200 baud USB serial as newline-delimited JSON. Firmware validates and buffers it, then plays locally on `PREVIEW`. Protocol version, effect catalog version, signature limits, and firmware behavior are described in the [firmware README](../firmware/README.md).
 
 ## Checks
 
 ```sh
-cd webapp
 pnpm test
 pnpm check
 pnpm build
-cd ../hardware
-~/.platformio/penv/bin/pio run
 ```
 
-Board feel, calibration, serial handshake, and actual 10 ms RTP timing require connected hardware; compilation alone cannot confirm those.
+These checks cover app code and build output. Connected hardware is needed to verify the serial handshake, calibration, actual haptic feel, and playback timing.
