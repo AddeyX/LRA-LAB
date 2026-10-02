@@ -1,0 +1,5 @@
+.DS_Store
+hardware/.pio/
+webapp/node_modules/
+webapp/.svelte-kit/
+webapp/build/
