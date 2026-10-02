@@ -3,6 +3,7 @@
   import { Badge, Button, Dialog, Popover } from "portal-bits";
   import SetupView from "$lib/SetupView.svelte";
   import HapticTimeline from "$lib/HapticTimeline.svelte";
+  import BuiltInImpulses from "$lib/BuiltInImpulses.svelte";
   import { GRID_MS, editTimeline, resizePulse, snapTime } from "$lib/timeline";
   import {
     fileStem,
@@ -868,23 +869,12 @@
               </div>
             </div>
             <div class="palette-group">
-              <span class="group-label">BUILT-IN IMPULSES</span
-              >{#each EFFECTS as effect (effect.id)}<button
-                  class="effect-choice"
-                  class:active-effect={brushKind === effect.id}
-                  aria-pressed={brushKind === effect.id}
-                  onclick={() => (brushKind = effect.id)}
-                  draggable="true"
-                  ondragstart={(event) => dragEffect(event, effect.id)}
-                  ><span class="effect-glyph">{effect.id < 10 ? "◢" : "▥"}</span
-                  ><span class="effect-name"
-                    >{effect.name}<small>{effect.strength} STRENGTH</small
-                    ></span
-                  ><span class="effect-duration">{effect.durationMs} ms</span
-                  ><span class="effect-plus"
-                    >{brushKind === effect.id ? "●" : "⋮⋮"}</span
-                  ></button
-                >{/each}
+              <span class="group-label">BUILT-IN IMPULSES</span>
+              <BuiltInImpulses
+                selectedId={brushKind}
+                onselect={(id) => (brushKind = id)}
+                ondragstart={dragEffect}
+              />
             </div>
             <div class="palette-group pulse-group">
               <span class="group-label">MAKE YOUR OWN</span><button
@@ -1090,7 +1080,6 @@
     border-top: 0;
     padding-top: 0;
   }
-  .effect-choice.active-effect,
   .pulse-choice.active-effect {
     background: var(--surface-soft);
     box-shadow: inset 0 0 0 1px var(--violet-bright);
