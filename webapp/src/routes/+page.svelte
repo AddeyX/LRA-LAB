@@ -4,6 +4,7 @@
   import SetupView from "$lib/SetupView.svelte";
   import HapticTimeline from "$lib/HapticTimeline.svelte";
   import BuiltInImpulses from "$lib/BuiltInImpulses.svelte";
+  import ScrubField from "$lib/components/ScrubField.svelte";
   import { GRID_MS, editTimeline, resizePulse, snapTime } from "$lib/timeline";
   import {
     fileStem,
@@ -485,269 +486,248 @@
     content="Compose and preview five-second LRA haptic signatures."
   /></svelte:head
 >
-<div class="app-shell">
-  <aside class="rail">
-    <div class="brand-mark">H<span>·</span></div>
-    <div class="rail-word">STUDIO / 01</div>
-    <div class="rail-bottom">LRA<br />LAB</div>
-  </aside>
-  <main>
-    <header class="topbar">
-      <div class="file-area">
+<main>
+  <header class="topbar">
+    <div class="file-area">
+      <Popover
+        bind:open={fileOpen}
+        label="File menu"
+        align="start"
+        theme="dark"
+        triggerClass="file-trigger"
+      >
+        {#snippet trigger()}<span>File</span><span
+            class="file-chevron"
+            aria-hidden="true">⌄</span
+          >{/snippet}
+        <div class="file-menu">
+          {#if filePane === "main"}
+            <p class="file-menu-label">PROJECT</p>
+            <button onclick={requestNew}>New <small>Fresh canvas</small></button
+            >
+            <button onclick={save}>Save <small>Browser</small></button>
+            <button onclick={saveAs}>Save As <small>JSON ↓</small></button>
+            <button onclick={() => (filePane = "open")}
+              >Open <span aria-hidden="true">→</span></button
+            >
+            <div class="file-menu-divider"></div>
+            <button
+              onclick={() => {
+                closeFileMenu();
+                codeDialog = true;
+              }}>Generate Code <small>C++</small></button
+            >
+            <button
+              onclick={() => {
+                closeFileMenu();
+                settingsDialog = true;
+              }}>Settings <small>View</small></button
+            >
+          {:else}
+            <button class="file-back" onclick={() => (filePane = "main")}
+              >← File</button
+            >
+            <p class="file-menu-label">OPEN PROJECT</p>
+            <button
+              onclick={() => {
+                closeFileMenu();
+                projects = readProjects(localStorage);
+                projectsDialog = true;
+              }}>Browser projects</button
+            >
+            <button
+              onclick={() => {
+                closeFileMenu();
+                fileInput?.click();
+              }}>From computer <small>JSON</small></button
+            >
+          {/if}
+        </div>
+      </Popover>
+      <span class="current-project"
+        >{projectName || "Untitled Haptic Signature"}{#if dirty}<i
+            aria-label="Unsaved changes"
+          ></i>{/if}</span
+      >
+    </div>
+    <button
+      class="sequence-meter"
+      class:expanded={sequenceExpanded}
+      aria-label="Expand sequence length"
+      aria-pressed={sequenceExpanded}
+      onclick={() => (sequenceExpanded = !sequenceExpanded)}
+    >
+      <span class="sequence-clock"
+        ><span>{(total / 1000).toFixed(2)}</span><small>/ 5.00 SEC</small></span
+      >
+      <span class="sequence-progress" aria-hidden="true"
+        ><span style:transform={`scaleX(${total / MAX_MS})`}></span></span
+      >
+      <span class="sequence-label">SEQUENCE LENGTH</span>
+    </button>
+    <div class="top-right">
+      {#if connected}
         <Popover
-          bind:open={fileOpen}
-          label="File menu"
-          align="start"
+          bind:open={deviceOpen}
+          label="Board connection and calibration"
           theme="dark"
-          triggerClass="file-trigger"
+          triggerClass="board-button board-connected"
         >
-          {#snippet trigger()}<span>File</span><span
-              class="file-chevron"
-              aria-hidden="true">⌄</span
-            >{/snippet}
-          <div class="file-menu">
-            {#if filePane === "main"}
-              <p class="file-menu-label">PROJECT</p>
-              <button onclick={requestNew}
-                >New <small>Fresh canvas</small></button
-              >
-              <button onclick={save}>Save <small>Browser</small></button>
-              <button onclick={saveAs}>Save As <small>JSON ↓</small></button>
-              <button onclick={() => (filePane = "open")}
-                >Open <span aria-hidden="true">→</span></button
-              >
-              <div class="file-menu-divider"></div>
-              <button
-                onclick={() => {
-                  closeFileMenu();
-                  codeDialog = true;
-                }}>Generate Code <small>C++</small></button
-              >
-              <button
-                onclick={() => {
-                  closeFileMenu();
-                  settingsDialog = true;
-                }}>Settings <small>View</small></button
-              >
-            {:else}
-              <button class="file-back" onclick={() => (filePane = "main")}
-                >← File</button
-              >
-              <p class="file-menu-label">OPEN PROJECT</p>
-              <button
-                onclick={() => {
-                  closeFileMenu();
-                  projects = readProjects(localStorage);
-                  projectsDialog = true;
-                }}>Browser projects</button
-              >
-              <button
-                onclick={() => {
-                  closeFileMenu();
-                  fileInput?.click();
-                }}>From computer <small>JSON</small></button
-              >
-            {/if}
+          {#snippet trigger()}
+            <span
+              class="status-dot"
+              class:online={calibrated}
+              class:needs-calibration={!calibrated}
+            ></span>
+            <span>{calibrated ? "Board connected" : "Needs calibration"}</span>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg
+            >
+          {/snippet}
+          <div class="board-popover">
+            <strong>Board connected</strong>
+            <Badge variant={calibrated ? "success" : "neutral"}
+              >{calibrated ? "CALIBRATED" : "NEEDS CALIBRATION"}</Badge
+            >
+            <p role="status">{notice}</p>
+            {#if error}<p class="board-error" role="alert">{error}</p>{/if}
+            <Button
+              variant="secondary"
+              onclick={calibrate}
+              disabled={busy || playing}
+              >{calibrating
+                ? "Calibrating…"
+                : calibrated
+                  ? "Recalibrate"
+                  : "Calibrate"}</Button
+            >
+            <div class="file-menu-divider"></div>
+            <button
+              class="board-disconnect"
+              disabled={busy || playing}
+              onclick={async () => {
+                deviceOpen = false;
+                try {
+                  await serial?.disconnect();
+                  connected = false;
+                  calibrated = false;
+                  firmwareProfile = null;
+                  notice = "Board disconnected. Editor works offline.";
+                } catch (cause) {
+                  error =
+                    cause instanceof Error
+                      ? cause.message
+                      : "Could not disconnect.";
+                }
+              }}>Disconnect</button
+            >
           </div>
         </Popover>
-        <span class="current-project"
-          >{projectName || "Untitled Haptic Signature"}{#if dirty}<i
-              aria-label="Unsaved changes"
-            ></i>{/if}</span
+      {:else}
+        <button class="board-button" onclick={connect} disabled={busy}
+          >{busy ? "Connecting…" : "Connect board"}</button
         >
-      </div>
+      {/if}
       <button
-        class="sequence-meter"
-        class:expanded={sequenceExpanded}
-        aria-label="Expand sequence length"
-        aria-pressed={sequenceExpanded}
-        onclick={() => (sequenceExpanded = !sequenceExpanded)}
+        class="setup-button"
+        onclick={() => (view = view === "studio" ? "setup" : "studio")}
+        >{view === "studio" ? "Setup" : "Studio"}
+        <span aria-hidden="true">↗</span></button
       >
-        <span class="sequence-clock"
-          ><span>{(total / 1000).toFixed(2)}</span><small>/ 5.00 SEC</small
-          ></span
-        >
-        <span class="sequence-progress" aria-hidden="true"
-          ><span style:transform={`scaleX(${total / MAX_MS})`}></span></span
-        >
-        <span class="sequence-label">SEQUENCE LENGTH</span>
-      </button>
-      <div class="top-right">
-        {#if connected}
-          <Popover
-            bind:open={deviceOpen}
-            label="Board connection and calibration"
-            theme="dark"
-            triggerClass="board-button board-connected"
-          >
-            {#snippet trigger()}
-              <span
-                class="status-dot"
-                class:online={calibrated}
-                class:needs-calibration={!calibrated}
-              ></span>
-              <span>{calibrated ? "Board connected" : "Needs calibration"}</span
-              >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg
-              >
-            {/snippet}
-            <div class="board-popover">
-              <strong>Board connected</strong>
-              <Badge variant={calibrated ? "success" : "neutral"}
-                >{calibrated ? "CALIBRATED" : "NEEDS CALIBRATION"}</Badge
-              >
-              <p role="status">{notice}</p>
-              {#if error}<p class="board-error" role="alert">{error}</p>{/if}
-              <Button
-                variant="secondary"
-                onclick={calibrate}
-                disabled={busy || playing}
-                >{calibrating
-                  ? "Calibrating…"
-                  : calibrated
-                    ? "Recalibrate"
-                    : "Calibrate"}</Button
-              >
-              <div class="file-menu-divider"></div>
-              <button
-                class="board-disconnect"
-                disabled={busy || playing}
-                onclick={async () => {
-                  deviceOpen = false;
-                  try {
-                    await serial?.disconnect();
-                    connected = false;
-                    calibrated = false;
-                    firmwareProfile = null;
-                    notice = "Board disconnected. Editor works offline.";
-                  } catch (cause) {
-                    error =
-                      cause instanceof Error
-                        ? cause.message
-                        : "Could not disconnect.";
-                  }
-                }}>Disconnect</button
-              >
-            </div>
-          </Popover>
-        {:else}
-          <button class="board-button" onclick={connect} disabled={busy}
-            >{busy ? "Connecting…" : "Connect board"}</button
-          >
-        {/if}
-        <button
-          class="setup-button"
-          onclick={() => (view = view === "studio" ? "setup" : "studio")}
-          >{view === "studio" ? "Setup" : "Studio"}
-          <span aria-hidden="true">↗</span></button
-        >
-      </div>
-    </header>
-    <input
-      class="visually-hidden"
-      type="file"
-      accept=".json,application/json"
-      bind:this={fileInput}
-      onchange={importFile}
-      aria-label="Open JSON from computer"
+    </div>
+  </header>
+  <input
+    class="visually-hidden"
+    type="file"
+    accept=".json,application/json"
+    bind:this={fileInput}
+    onchange={importFile}
+    aria-label="Open JSON from computer"
+  />
+  {#if view === "setup"}
+    <SetupView
+      {connected}
+      {calibrated}
+      {busy}
+      {notice}
+      {error}
+      onConnect={connect}
+      onCalibrate={calibrate}
+      onExit={() => (view = "studio")}
     />
-    {#if view === "setup"}
-      <SetupView
-        {connected}
-        {calibrated}
-        {busy}
-        {notice}
-        {error}
-        onConnect={connect}
-        onCalibrate={calibrate}
-        onExit={() => (view = "studio")}
-      />
-    {:else}
-      <div class="content">
-        <section class="hero" hidden>
-          <div>
-            <p class="kicker">01 / COMPOSE</p>
-            <h1>Shape the <em>feel.</em></h1>
-            <p class="hero-copy" hidden>
-              Build a tactile signature, then feel it on hardware. Every moment
-              lives on one five-second canvas.
-            </p>
-          </div>
-        </section>
-        <p class="studio-notice" role="status" hidden>{notice}</p>
-        {#if error}<div class="error-banner" role="alert">
-            <strong>CHECK THIS</strong><span>{error}</span><button
-              onclick={() => (error = "")}
-              aria-label="Dismiss error">×</button
-            >
-          </div>{/if}
-        <div class="workspace">
-          <div class="editor-column">
-            <section class="timeline-section">
-              <div class="section-head timeline-head">
-                <div>
-                  <h2>Haptic sequencer</h2>
-                  <p>Pattern 01 · single track · 40 ms grid</p>
-                </div>
-                <div class="timeline-controls">
-                  <button
-                    onclick={preview}
-                    disabled={!connected ||
-                      !calibrated ||
-                      !!validation ||
-                      busy ||
-                      playing}
-                    class="play-button">▶ <span>PREVIEW</span></button
-                  ><button
-                    onclick={stop}
-                    disabled={!connected || !playing}
-                    class="stop-button">■ <span>STOP</span></button
-                  >
-                </div>
+  {:else}
+    <div class="content">
+      <section class="hero" hidden>
+        <div>
+          <p class="kicker">01 / COMPOSE</p>
+          <h1>Shape the <em>feel.</em></h1>
+          <p class="hero-copy" hidden>
+            Build a tactile signature, then feel it on hardware. Every moment
+            lives on one five-second canvas.
+          </p>
+        </div>
+      </section>
+      <p class="studio-notice" role="status" hidden>{notice}</p>
+      {#if error}<div class="error-banner" role="alert">
+          <strong>CHECK THIS</strong><span>{error}</span><button
+            onclick={() => (error = "")}
+            aria-label="Dismiss error">×</button
+          >
+        </div>{/if}
+      <div class="workspace">
+        <div class="editor-column">
+          <section class="timeline-section">
+            <div class="section-head timeline-head">
+              <div>
+                <h2>Haptic sequencer</h2>
+                <p>Pattern 01 · single track · 40 ms grid</p>
               </div>
-              <HapticTimeline
-                blocks={signature.blocks}
-                {selectedId}
-                {brush}
-                onselect={(id) => (selectedId = id)}
-                onplace={placeBeat}
-                onedit={updateBlock}
-                onremove={removeBlock}
-              />
-            </section>
-            <section class="inspector">
-              {#if selected}<div class="inspector-top">
-                  <div>
-                    <span class="group-label">SELECTED BLOCK</span>
-                    <h3>{label(selected)}</h3>
-                  </div>
-                  <button
-                    class="delete-button"
-                    onclick={() => removeBlock(selected!.id)}>Remove ×</button
-                  >
+              <div class="timeline-controls">
+                <button
+                  onclick={preview}
+                  disabled={!connected ||
+                    !calibrated ||
+                    !!validation ||
+                    busy ||
+                    playing}
+                  class="play-button">▶ <span>PREVIEW</span></button
+                ><button
+                  onclick={stop}
+                  disabled={!connected || !playing}
+                  class="stop-button">■ <span>STOP</span></button
+                >
+              </div>
+            </div>
+            <HapticTimeline
+              blocks={signature.blocks}
+              {selectedId}
+              {brush}
+              onselect={(id) => (selectedId = id)}
+              onplace={placeBeat}
+              onedit={updateBlock}
+              onremove={removeBlock}
+            />
+          </section>
+          <section class="inspector">
+            {#if selected}<div class="inspector-top">
+                <div>
+                  <span class="group-label">SELECTED BLOCK</span>
+                  <h3>{label(selected)}</h3>
                 </div>
-                <div class="form-grid">
-                  <label
-                    >START <span>MS</span><input
-                      type="number"
-                      min="0"
-                      max={MAX_MS}
-                      step={GRID_MS}
-                      value={selected.startMs}
-                      onchange={(event) =>
-                        updateBlock({
-                          ...selected!,
-                          startMs: Number(event.currentTarget.value),
-                        })}
-                    /></label
-                  >{#if selected.type === "effect"}<label
+                <button
+                  class="delete-button"
+                  onclick={() => removeBlock(selected!.id)}>Remove ×</button
+                >
+              </div>
+              <div class="inspector-fields">
+                {#if selected.type === "effect"}<div class="form-grid">
+                    <label style:grid-column="1 / -1"
                       >EFFECT VARIANT<select
                         value={selected.effectId}
                         onchange={(event) =>
@@ -760,146 +740,163 @@
                             >{effect.name} · {effect.strength}</option
                           >{/each}</select
                       ></label
-                    ><label
-                      >DURATION <span>FIXED SLOT</span><input
-                        value={`${blockDuration(selected)} ms`}
-                        disabled
-                      /></label
-                    >{:else}<label
-                      >DURATION <span>MS</span><input
-                        type="number"
-                        min={GRID_MS}
+                    >
+                  </div>
+                  <div class="duration-field">
+                    <span class="group-label">FIXED SLOT</span>
+                    {#key selected.id}
+                      <ScrubField
+                        label="Duration"
+                        suffix="ms"
+                        value={blockDuration(selected)}
+                        defaultValue={blockDuration(selected)}
+                        min={0}
                         max={MAX_MS}
-                        step={GRID_MS}
+                        size="lg"
+                        accent="#80b4ff"
+                        chipColor="var(--surface)"
+                        disabled
+                      />
+                    {/key}
+                  </div>
+                {:else}<div class="duration-field">
+                    <span class="group-label">PULSE DURATION</span>
+                    {#key selected.id}
+                      <ScrubField
+                        label="Duration"
+                        suffix="ms"
                         value={selected.durationMs}
-                        onchange={(event) =>
-                          changeDuration(
-                            selected as PulseBlock,
-                            Number(event.currentTarget.value),
-                          )}
-                      /></label
-                    >{/if}
-                </div>
-                <div class="arrange">
-                  <span>NUDGE · 40 MS</span><button
-                    onclick={() => moveBlock(selected!.id, -1)}
-                    disabled={selected.startMs <= 0}>← Earlier</button
-                  ><button
-                    onclick={() => moveBlock(selected!.id, 1)}
-                    disabled={selected.startMs +
-                      blockDuration(selected) +
-                      GRID_MS >
-                      MAX_MS}>Later →</button
+                        defaultValue={320}
+                        min={GRID_MS}
+                        max={Math.floor((MAX_MS - selected.startMs) / GRID_MS) *
+                          GRID_MS}
+                        step={GRID_MS}
+                        fineMultiplier={1}
+                        size="lg"
+                        accent="#80b4ff"
+                        chipColor="var(--surface)"
+                        onChange={(value) =>
+                          changeDuration(selected as PulseBlock, value)}
+                      />
+                    {/key}
+                  </div>{/if}
+              </div>
+              <div class="arrange">
+                <span>NUDGE · 40 MS</span><button
+                  onclick={() => moveBlock(selected!.id, -1)}
+                  disabled={selected.startMs <= 0}>← Earlier</button
+                ><button
+                  onclick={() => moveBlock(selected!.id, 1)}
+                  disabled={selected.startMs +
+                    blockDuration(selected) +
+                    GRID_MS >
+                    MAX_MS}>Later →</button
+                >
+              </div>
+              {#if selected.type === "pulse"}<div class="keyframe-heading">
+                  <span class="group-label">AMPLITUDE ENVELOPE</span><button
+                    onclick={() => addPoint(selected as PulseBlock)}
+                    >+ Add point</button
                   >
                 </div>
-                {#if selected.type === "pulse"}<div class="keyframe-heading">
-                    <span class="group-label">AMPLITUDE ENVELOPE</span><button
-                      onclick={() => addPoint(selected as PulseBlock)}
-                      >+ Add point</button
-                    >
-                  </div>
-                  <div class="envelope" aria-hidden="true">
-                    <svg viewBox="0 0 100 100" preserveAspectRatio="none"
-                      ><polyline
-                        points={selected.keyframes
-                          .map(
-                            (point) =>
-                              `${(point.timeMs / selected.durationMs) * 100},${100 - point.amplitudePercent}`,
-                          )
-                          .join(" ")}
-                      /></svg
-                    >
-                  </div>
-                  <div class="point-list">
-                    {#each selected.keyframes as point, index (index)}<div>
-                        <span>{String(index + 1).padStart(2, "0")}</span><label
-                          >TIME <input
-                            type="number"
-                            min="0"
-                            max={selected.durationMs}
-                            disabled={index === 0 ||
-                              index === selected.keyframes.length - 1}
-                            value={point.timeMs}
-                            onchange={(event) =>
-                              updatePoint(
-                                selected as PulseBlock,
-                                index,
-                                "timeMs",
-                                Number(event.currentTarget.value),
-                              )}
-                          /></label
-                        ><label
-                          >AMP <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={point.amplitudePercent}
-                            onchange={(event) =>
-                              updatePoint(
-                                selected as PulseBlock,
-                                index,
-                                "amplitudePercent",
-                                Number(event.currentTarget.value),
-                              )}
-                          /></label
-                        ><span>%</span><button
+                <div class="envelope" aria-hidden="true">
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+                    ><polyline
+                      points={selected.keyframes
+                        .map(
+                          (point) =>
+                            `${(point.timeMs / selected.durationMs) * 100},${100 - point.amplitudePercent}`,
+                        )
+                        .join(" ")}
+                    /></svg
+                  >
+                </div>
+                <div class="point-list">
+                  {#each selected.keyframes as point, index (index)}<div>
+                      <span>{String(index + 1).padStart(2, "0")}</span><label
+                        >TIME <input
+                          type="number"
+                          min="0"
+                          max={selected.durationMs}
                           disabled={index === 0 ||
                             index === selected.keyframes.length - 1}
-                          onclick={() =>
-                            updateBlock({
-                              ...(selected as PulseBlock),
-                              keyframes: selected.keyframes.filter(
-                                (_, i) => i !== index,
-                              ),
-                            })}
-                          aria-label="Remove point">×</button
-                        >
-                      </div>{/each}
-                  </div>{/if}{:else}<div class="inspector-empty">
-                  Click a beat to edit its feel. Drag it on the grid to change
-                  its start time.
-                </div>{/if}
-            </section>
-          </div>
-          <section class="palette">
-            <div class="section-head">
-              <div>
-                <h2>Effect library</h2>
-                <p>Choose a beat, then click the grid</p>
-              </div>
-            </div>
-            <div class="palette-group">
-              <span class="group-label">BUILT-IN IMPULSES</span>
-              <BuiltInImpulses
-                selectedId={brushKind}
-                onselect={(id) => (brushKind = id)}
-                ondragstart={dragEffect}
-              />
-            </div>
-            <div class="palette-group pulse-group">
-              <span class="group-label">MAKE YOUR OWN</span><button
-                class="pulse-choice"
-                class:active-effect={brushKind === "pulse"}
-                aria-pressed={brushKind === "pulse"}
-                onclick={() => (brushKind = "pulse")}
-                draggable="true"
-                ondragstart={(event) => dragEffect(event, "pulse")}
-                ><span class="pulse-icon">〰</span><span
-                  ><strong>Custom pulse</strong><small
-                    >Shape amplitude over time</small
-                  ></span
-                ><span>↗</span></button
-              >
-            </div>
+                          value={point.timeMs}
+                          onchange={(event) =>
+                            updatePoint(
+                              selected as PulseBlock,
+                              index,
+                              "timeMs",
+                              Number(event.currentTarget.value),
+                            )}
+                        /></label
+                      ><label
+                        >AMP <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={point.amplitudePercent}
+                          onchange={(event) =>
+                            updatePoint(
+                              selected as PulseBlock,
+                              index,
+                              "amplitudePercent",
+                              Number(event.currentTarget.value),
+                            )}
+                        /></label
+                      ><span>%</span><button
+                        disabled={index === 0 ||
+                          index === selected.keyframes.length - 1}
+                        onclick={() =>
+                          updateBlock({
+                            ...(selected as PulseBlock),
+                            keyframes: selected.keyframes.filter(
+                              (_, i) => i !== index,
+                            ),
+                          })}
+                        aria-label="Remove point">×</button
+                      >
+                    </div>{/each}
+                </div>{/if}{:else}<div class="inspector-empty">
+                Click a beat to edit its feel. Drag it on the grid to change its
+                start time.
+              </div>{/if}
           </section>
         </div>
-        <footer>
-          <span>LRA LAB</span><span>AddeyX</span><span>LOCAL BY DESIGN</span>
-        </footer>
+        <section class="palette">
+          <div class="section-head">
+            <div>
+              <h2>Effect library</h2>
+              <p>Choose a beat, then click the grid</p>
+            </div>
+          </div>
+          <div class="palette-group">
+            <span class="group-label">BUILT-IN IMPULSES</span>
+            <BuiltInImpulses
+              selectedId={brushKind}
+              onselect={(id) => (brushKind = id)}
+              ondragstart={dragEffect}
+            />
+          </div>
+          <div class="palette-group pulse-group">
+            <span class="group-label">MAKE YOUR OWN</span><button
+              class="pulse-choice"
+              class:active-effect={brushKind === "pulse"}
+              aria-pressed={brushKind === "pulse"}
+              onclick={() => (brushKind = "pulse")}
+              draggable="true"
+              ondragstart={(event) => dragEffect(event, "pulse")}
+              ><span class="pulse-icon">〰</span><span
+                ><strong>Custom pulse</strong><small
+                  >Shape amplitude over time</small
+                ></span
+              ><span>↗</span></button
+            >
+          </div>
+        </section>
       </div>
-    {/if}
-  </main>
-</div>
+    </div>
+  {/if}
+</main>
 
 <Dialog
   bind:open={newDialog}
@@ -1062,6 +1059,31 @@
 </Dialog>
 
 <style>
+  .inspector-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+    gap: 14px;
+  }
+  .duration-field {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-right: 25px;
+  }
+  .duration-field:first-child {
+    grid-column: 1 / -1;
+    padding-left: 25px;
+  }
+  @media (max-width: 500px) {
+    .inspector-fields {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .duration-field {
+      padding-left: 25px;
+    }
+  }
   .editor-column {
     grid-template-columns: minmax(0, 1fr);
     align-content: start;

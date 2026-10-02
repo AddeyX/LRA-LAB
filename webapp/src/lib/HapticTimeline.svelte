@@ -1,6 +1,7 @@
 <script lang="ts">
   import { MAX_MS, blockDuration, effectById, type Block } from "./signature";
   import { GRID_MS, editTimeline, resizePulse, snapTime } from "./timeline";
+  import ScrubField from "./components/ScrubField.svelte";
 
   let { blocks, selectedId, brush, onselect, onplace, onedit, onremove } =
     $props<{
@@ -126,14 +127,21 @@
     ><span aria-hidden="true">▦</span> SNAP <strong>40 ms</strong></span
   >
   <span class="timeline-hint">Click to place · drag to move</span>
-  <label class="zoom-control"
-    >ZOOM
-    <select aria-label="Timeline zoom" bind:value={cellWidth}>
-      <option value={12}>60%</option><option value={20}>100%</option><option
-        value={32}>160%</option
-      >
-    </select>
-  </label>
+  <div class="zoom-control">
+    <ScrubField
+      label="Zoom"
+      suffix="%"
+      value={cellWidth * 5}
+      defaultValue={100}
+      min={60}
+      max={160}
+      step={5}
+      size="sm"
+      accent="#80b4ff"
+      chipColor="var(--surface)"
+      onChange={(value) => (cellWidth = value / 5)}
+    />
+  </div>
 </div>
 <div class="sequencer-body" role="region" aria-label="Haptic timeline">
   <div class="sequencer-viewport" bind:this={viewport}>
@@ -290,13 +298,6 @@
     color: var(--muted);
     font-size: 9px;
     letter-spacing: 0.1em;
-  }
-  select {
-    padding: 4px;
-    background: var(--surface-raised);
-    color: var(--text);
-    border: 1px solid var(--line);
-    border-radius: 3px;
   }
   .sequencer-body {
     display: grid;
