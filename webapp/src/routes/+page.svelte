@@ -2,6 +2,8 @@
   import { onMount } from "svelte";
   import { Badge, Button, Dialog, Popover } from "portal-bits";
   import SetupView from "$lib/SetupView.svelte";
+  import HapticTimeline from "$lib/HapticTimeline.svelte";
+  import { GRID_MS, editTimeline, resizePulse, snapTime } from "$lib/timeline";
   import {
     fileStem,
     parseProjectFile,
@@ -70,7 +72,8 @@
       : "Add effect or pulse to begin.",
   );
   let code = $derived.by(() => (validation ? "" : exportCpp(signature)));
-  const ticks = [0, 1000, 2000, 3000, 4000, 5000];
+  let brushKind = $state<number | "pulse">(1);
+  let brush = $derived(makeBeat(brushKind, 0, "placement-brush"));
   const newId = () => crypto.randomUUID();
   const label = (block: Block) =>
     block.type === "effect"
@@ -248,61 +251,59 @@
     if (focus) selectedId = focus;
     persist();
   }
-  function addEffect(effectId: number) {
-    const startMs = total;
-    const block: Block = { id: newId(), type: "effect", startMs, effectId };
-    commit([...signature.blocks, block], block.id);
+  function makeBeat(
+    kind: number | "pulse",
+    startMs: number,
+    id: string,
+  ): Block {
+    return kind === "pulse"
+      ? {
+          id,
+          type: "pulse",
+          startMs,
+          durationMs: 320,
+          keyframes: [
+            { timeMs: 0, amplitudePercent: 0 },
+            { timeMs: 80, amplitudePercent: 75 },
+            { timeMs: 320, amplitudePercent: 0 },
+          ],
+        }
+      : { id, type: "effect", startMs, effectId: kind };
   }
-  function addPulse() {
-    const block: PulseBlock = {
-      id: newId(),
-      type: "pulse",
-      startMs: total,
-      durationMs: 300,
-      keyframes: [
-        { timeMs: 0, amplitudePercent: 0 },
-        { timeMs: 60, amplitudePercent: 75 },
-        { timeMs: 300, amplitudePercent: 0 },
-      ],
-    };
-    commit([...signature.blocks, block], block.id);
+  function placeBeat(startMs: number, kind: number | "pulse" = brushKind) {
+    const block = makeBeat(kind, startMs, newId());
+    updateBlock(block);
+  }
+  function dragEffect(event: DragEvent, kind: number | "pulse") {
+    brushKind = kind;
+    if (event.dataTransfer) {
+      event.dataTransfer.setData("application/x-haptic-beat", String(kind));
+      event.dataTransfer.effectAllowed = "copy";
+    }
   }
   function updateBlock(replacement: Block) {
-    commit(
-      signature.blocks.map((block) =>
-        block.id === replacement.id ? replacement : block,
-      ),
-      replacement.id,
-    );
+    const result = editTimeline(signature.blocks, replacement);
+    if (result.error) {
+      error = result.error;
+      return;
+    }
+    commit(result.blocks, replacement.id);
   }
   function removeBlock(id: string) {
     commit(signature.blocks.filter((block) => block.id !== id));
-    selectedId = signature.blocks.find((block) => block.id !== id)?.id ?? null;
+    if (selectedId === id) selectedId = signature.blocks[0]?.id ?? null;
   }
   function moveBlock(id: string, direction: -1 | 1) {
-    const blocks = [...signature.blocks];
-    const index = blocks.findIndex((block) => block.id === id);
-    const other = index + direction;
-    if (index < 0 || other < 0 || other >= blocks.length) return;
-    [blocks[index], blocks[other]] = [blocks[other], blocks[index]];
-    let cursor = 0;
-    commit(
-      blocks.map((block) => {
-        const moved = { ...block, startMs: cursor };
-        cursor += blockDuration(block);
-        return moved;
-      }),
-      id,
-    );
+    const block = signature.blocks.find((item) => item.id === id);
+    if (block)
+      updateBlock({
+        ...block,
+        startMs: Math.max(0, snapTime(block.startMs) + direction * GRID_MS),
+      });
   }
   function changeDuration(block: PulseBlock, value: number) {
-    if (!Number.isInteger(value) || value < 10) return;
-    const points = block.keyframes.map((point, index) =>
-      index === block.keyframes.length - 1
-        ? { ...point, timeMs: value }
-        : point,
-    );
-    updateBlock({ ...block, durationMs: value, keyframes: points });
+    if (!Number.isFinite(value)) return;
+    updateBlock(resizePulse(block, value));
   }
   function updatePoint(
     block: PulseBlock,
@@ -691,8 +692,8 @@
             <section class="timeline-section">
               <div class="section-head timeline-head">
                 <div>
-                  <h2>Timeline</h2>
-                  <p>One track · up to 5 seconds</p>
+                  <h2>Haptic sequencer</h2>
+                  <p>Pattern 01 · single track · 40 ms grid</p>
                 </div>
                 <div class="timeline-controls">
                   <button
@@ -710,53 +711,17 @@
                   >
                 </div>
               </div>
-              <div class="ruler">
-                {#each ticks as tick (tick)}<span
-                    style:left={`${(tick / MAX_MS) * 100}%`}
-                    >{tick / 1000}s</span
-                  >{/each}
-              </div>
-              <div class="track" aria-label="Signature timeline">
-                <div class="track-grid">
-                  {#each ticks as tick (tick)}<i
-                      style:left={`${(tick / MAX_MS) * 100}%`}
-                    ></i>{/each}
-                </div>
-                {#if signature.blocks.length === 0}<div class="empty-track">
-                    Add an effect or pulse to start your signature <span>→</span
-                    >
-                  </div>{/if}{#each signature.blocks as block (block.id)}<button
-                    class:chosen={selectedId === block.id}
-                    class:pulse-block={block.type === "pulse"}
-                    class="timeline-block"
-                    style:left={`${(block.startMs / MAX_MS) * 100}%`}
-                    style:width={`${(blockDuration(block) / MAX_MS) * 100}%`}
-                    onclick={() => (selectedId = block.id)}
-                    title={`${label(block)} · ${block.startMs}–${block.startMs + blockDuration(block)} ms`}
-                    ><span>{block.type === "pulse" ? "〰" : "◆"}</span><b
-                      >{label(block)}</b
-                    ></button
-                  >{/each}
-              </div>
-              <div class="track-footer">
-                <span>0 MS</span><span
-                  >{signature.blocks.length} BLOCK{signature.blocks.length === 1
-                    ? ""
-                    : "S"} · {Math.max(0, MAX_MS - total)} MS REMAINING</span
-                ><span>5000 MS</span>
-              </div>
+              <HapticTimeline
+                blocks={signature.blocks}
+                {selectedId}
+                {brush}
+                onselect={(id) => (selectedId = id)}
+                onplace={placeBeat}
+                onedit={updateBlock}
+                onremove={removeBlock}
+              />
             </section>
             <section class="inspector">
-              <div class="section-head">
-                <div>
-                  <h2>Shape &amp; arrange</h2>
-                  <p>
-                    {selected
-                      ? "Selected block controls"
-                      : "Select a block on the timeline"}
-                  </p>
-                </div>
-              </div>
               {#if selected}<div class="inspector-top">
                   <div>
                     <span class="group-label">SELECTED BLOCK</span>
@@ -773,6 +738,7 @@
                       type="number"
                       min="0"
                       max={MAX_MS}
+                      step={GRID_MS}
                       value={selected.startMs}
                       onchange={(event) =>
                         updateBlock({
@@ -801,8 +767,9 @@
                     >{:else}<label
                       >DURATION <span>MS</span><input
                         type="number"
-                        min="10"
+                        min={GRID_MS}
                         max={MAX_MS}
+                        step={GRID_MS}
                         value={selected.durationMs}
                         onchange={(event) =>
                           changeDuration(
@@ -813,14 +780,15 @@
                     >{/if}
                 </div>
                 <div class="arrange">
-                  <span>ORDER</span><button
+                  <span>NUDGE · 40 MS</span><button
                     onclick={() => moveBlock(selected!.id, -1)}
-                    disabled={signature.blocks[0]?.id === selected.id}
-                    >← Earlier</button
+                    disabled={selected.startMs <= 0}>← Earlier</button
                   ><button
                     onclick={() => moveBlock(selected!.id, 1)}
-                    disabled={signature.blocks.at(-1)?.id === selected.id}
-                    >Later →</button
+                    disabled={selected.startMs +
+                      blockDuration(selected) +
+                      GRID_MS >
+                      MAX_MS}>Later →</button
                   >
                 </div>
                 {#if selected.type === "pulse"}<div class="keyframe-heading">
@@ -887,7 +855,8 @@
                         >
                       </div>{/each}
                   </div>{/if}{:else}<div class="inspector-empty">
-                  Select a block to adjust timing and feel.
+                  Click a beat to edit its feel. Drag it on the grid to change
+                  its start time.
                 </div>{/if}
             </section>
           </div>
@@ -895,29 +864,36 @@
             <div class="section-head">
               <div>
                 <h2>Effect library</h2>
-                <p>ROM effects · LRA library 6</p>
+                <p>Choose a beat, then click the grid</p>
               </div>
             </div>
             <div class="palette-group">
               <span class="group-label">BUILT-IN IMPULSES</span
               >{#each EFFECTS as effect (effect.id)}<button
                   class="effect-choice"
-                  onclick={() => addEffect(effect.id)}
-                  disabled={total + effect.durationMs > MAX_MS ||
-                    signature.blocks.length >= 32}
+                  class:active-effect={brushKind === effect.id}
+                  aria-pressed={brushKind === effect.id}
+                  onclick={() => (brushKind = effect.id)}
+                  draggable="true"
+                  ondragstart={(event) => dragEffect(event, effect.id)}
                   ><span class="effect-glyph">{effect.id < 10 ? "◢" : "▥"}</span
                   ><span class="effect-name"
                     >{effect.name}<small>{effect.strength} STRENGTH</small
                     ></span
                   ><span class="effect-duration">{effect.durationMs} ms</span
-                  ><span class="effect-plus">+</span></button
+                  ><span class="effect-plus"
+                    >{brushKind === effect.id ? "●" : "⋮⋮"}</span
+                  ></button
                 >{/each}
             </div>
             <div class="palette-group pulse-group">
               <span class="group-label">MAKE YOUR OWN</span><button
                 class="pulse-choice"
-                onclick={addPulse}
-                disabled={total + 300 > MAX_MS || signature.blocks.length >= 32}
+                class:active-effect={brushKind === "pulse"}
+                aria-pressed={brushKind === "pulse"}
+                onclick={() => (brushKind = "pulse")}
+                draggable="true"
+                ondragstart={(event) => dragEffect(event, "pulse")}
                 ><span class="pulse-icon">〰</span><span
                   ><strong>Custom pulse</strong><small
                     >Shape amplitude over time</small
@@ -1094,3 +1070,29 @@
     </p>
   </div>
 </Dialog>
+
+<style>
+  .editor-column {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+  }
+  .timeline-section,
+  .inspector {
+    min-width: 0;
+  }
+  .timeline-head {
+    flex-wrap: wrap;
+  }
+  .timeline-controls {
+    justify-content: flex-end;
+  }
+  .inspector-top {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .effect-choice.active-effect,
+  .pulse-choice.active-effect {
+    background: var(--surface-soft);
+    box-shadow: inset 0 0 0 1px var(--violet-bright);
+  }
+</style>

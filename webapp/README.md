@@ -22,7 +22,9 @@ pnpm install
 pnpm dev
 ```
 
-Open the local URL printed by Vite (bound to `127.0.0.1`). To feel a signature, first build and upload the matching [`firmware`](../firmware/README.md), connect the board, and select **Calibrate**. Add an effect or pulse, adjust it in **Shape & arrange**, then select **Preview**. **Stop** ends active playback. Close any serial monitor before connecting.
+Open the local URL printed by Vite (bound to `127.0.0.1`). To feel a signature, first build and upload the matching [`firmware`](../firmware/README.md), connect the board, and select **Calibrate**. Choose an effect or custom pulse in **Effect library**, then click a timeline cell to place it. You can also drag an effect from the library onto the grid. Drag a beat to change its start time; drag the right edge of a custom pulse to resize it. New placements, moves, and pulse duration changes snap to **40 ms**. Built-in effects retain their fixed hardware slot lengths, including the 750 ms alert. Existing imported timing stays intact until moved. Adjust feel in the selected beat controls below the timeline, then select **Preview**. **Stop** ends active playback. Close any serial monitor before connecting.
+
+The timeline has 125 cells across five seconds. Scroll horizontally to reach later cells and use **Zoom** to change cell width. With a beat focused, **Left/Right** moves it by 40 ms and **Delete/Backspace** removes it; arrow keys on a pulse resize handle change duration. Overlapping beats and edits past five seconds are rejected without changing the pattern. Pulse resizing scales the amplitude envelope while preserving point order.
 
 Editor use without a board is possible; hardware preview and calibration require the board. The active valid draft is saved in local storage and restored on reload. **File → New** starts a fresh signature and asks whether to save unsaved edits first. **Save** creates or updates a named browser project. **Save As** downloads a portable signature JSON file; **Open** loads a browser project or imports JSON from your computer. Browser projects stay in this browser profile, while JSON files can be moved elsewhere. Opening another project with unsaved edits asks before replacing them.
 
@@ -35,6 +37,8 @@ Editor use without a board is possible; hardware preview and calibration require
 | Path | Role |
 | --- | --- |
 | [`src/routes/+page.svelte`](src/routes/+page.svelte) | Editor interface and workflow |
+| [`src/lib/HapticTimeline.svelte`](src/lib/HapticTimeline.svelte) | Grid, drag/drop, pulse resizing, zoom, and keyboard controls |
+| [`src/lib/timeline.ts`](src/lib/timeline.ts) | Grid snapping, atomic edit validation, envelope resizing |
 | [`src/lib/signature.ts`](src/lib/signature.ts) | Signature schema, effect catalog, validation, amplitude math |
 | [`src/lib/serial.ts`](src/lib/serial.ts) | Web Serial connection and request/response handling |
 | [`src/lib/export.ts`](src/lib/export.ts) | Arduino C++ generation |
