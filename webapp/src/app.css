@@ -890,8 +890,8 @@ button:disabled { opacity: .45; }
 .header-rule { background: var(--line); }
 .status-dot { background: #756b7b; }
 .status-dot.online { background: #9ee5c0; box-shadow: 0 0 0 4px #263b31; }
-.content { position: relative; isolation: isolate; }
-.content::before {
+.content, .setup-view { position: relative; isolation: isolate; }
+.content::before, .setup-view::before {
   content: "";
   position: absolute;
   z-index: -1;
@@ -995,7 +995,7 @@ button:disabled { opacity: .45; }
 footer { color: var(--subtle); }
 footer i { color: var(--violet-bright); }
 @media (max-width: 760px) {
-  .content::before { left: -18px; height: 300px; }
+  .content::before, .setup-view::before { left: -18px; height: 300px; }
   .hero { padding-top: 38px; }
   .hero h1 { font-size: clamp(42px, 10vw, 52px); }
   .device-strip { border-radius: 14px; }
@@ -1304,28 +1304,9 @@ footer i { color: var(--violet-bright); }
   font-size: 12px;
 }
 .setup-view {
-  max-width: 1500px;
+  max-width: 1700px;
   margin: auto;
-  padding: 52px clamp(25px, 3.8vw, 70px) 85px;
-}
-.setup-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
-  gap: 25px;
-  margin-bottom: 45px;
-}
-.setup-heading h1 {
-  margin: 0 0 12px;
-  font:
-    650 clamp(42px, 5vw, 74px)/1 "Space Grotesk Variable",
-    sans-serif;
-  letter-spacing: -0.04em;
-}
-.setup-heading p:last-child {
-  margin: 0;
-  color: #c6b9cf;
-  font-size: 16px;
+  padding: 0 clamp(25px, 3.8vw, 70px) 85px;
 }
 .setup-exit {
   border: 1px solid #675576;
@@ -1562,16 +1543,7 @@ footer i { color: var(--violet-bright); }
     min-width: 84px;
   }
   .setup-view {
-    padding: 33px 18px 65px;
-  }
-  .setup-heading {
-    margin-bottom: 27px;
-  }
-  .setup-heading h1 {
-    font-size: 40px;
-  }
-  .setup-heading p:last-child {
-    font-size: 14px;
+    padding: 0 18px 65px;
   }
   .setup-exit {
     font-size: 0;

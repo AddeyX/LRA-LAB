@@ -43,10 +43,11 @@
 </script>
 
 <div class="setup-view">
-  <div class="setup-heading">
+  <div class="hero setup-heading">
     <div>
-      <h1>Make it tangible.</h1>
-      <p>Bring your LRA online, one step at a time.</p>
+      <p class="kicker">02 / SETUP</p>
+      <h1>Make it <em>tangible.</em></h1>
+      <p class="hero-copy">Bring your LRA online, one step at a time.</p>
     </div>
     <button class="setup-exit" onclick={onExit}
       >Back to studio <span aria-hidden="true">↗</span></button
