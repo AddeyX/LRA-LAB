@@ -269,11 +269,11 @@
     white-space: nowrap;
   }
   .snap-label > span {
-    color: var(--violet-bright);
+    color: var(--accent-bright);
     font-size: 18px;
   }
   .snap-label strong {
-    color: var(--violet-bright);
+    color: var(--accent-bright);
     letter-spacing: 0;
     background: var(--surface-soft);
     padding: 4px 7px;
@@ -349,7 +349,7 @@
     background:
       repeating-linear-gradient(
         to right,
-        color-mix(in srgb, var(--violet-bright) 18%, transparent) 0 1px,
+        color-mix(in srgb, var(--accent-bright) 18%, transparent) 0 1px,
         transparent 1px calc(var(--cell) * 5)
       ),
       repeating-linear-gradient(
@@ -376,7 +376,7 @@
   }
   .grid-cell:hover,
   .grid-cell:focus-visible {
-    background: color-mix(in srgb, var(--violet) 12%, transparent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
     transform: none;
   }
   .lane-empty {
@@ -401,14 +401,14 @@
     height: 112px;
     z-index: 2;
     border-radius: 9px;
-    background: var(--violet);
-    border: 1px solid var(--violet-bright);
+    background: var(--accent);
+    border: 1px solid var(--accent-bright);
     color: var(--text);
     box-shadow: 0 3px 0 var(--canvas);
   }
   .beat-wrapper.custom {
-    background: var(--violet-deep);
-    border-color: var(--violet);
+    background: var(--accent-deep);
+    border-color: var(--accent);
     color: var(--text);
   }
   .beat-wrapper.selected {
@@ -468,7 +468,7 @@
   .beat-duration {
     font-size: 9px;
     white-space: nowrap;
-    opacity: 0.85;
+    opacity: 1;
     font-variant-numeric: tabular-nums;
   }
   .resize-handle {
@@ -494,8 +494,8 @@
     position: absolute;
     top: 40px;
     height: 116px;
-    border: 2px dashed var(--violet-bright);
-    background: color-mix(in srgb, var(--violet) 18%, transparent);
+    border: 2px dashed var(--accent-bright);
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
     color: var(--text);
     z-index: 4;
     pointer-events: none;

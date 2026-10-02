@@ -12,6 +12,10 @@ The web app is LRA Lab's local signature editor. It gives users a timeline for c
 
 The editor currently supports built-in DRV2605L library 6 effects, custom pulses with editable amplitude keyframes, block timing and order controls, calibration status, preview and stop, and C++ export. Effects and pulses share one signature model. Browser validation, firmware validation, and generated C++ follow the same timing and amplitude rules. Blocks cannot overlap; gaps are allowed.
 
+## Appearance
+
+The studio and setup guide share a black background with white text and blue accents. `src/lib/components/DarkVeil.svelte` renders the supplied Svelte Bits veil using `ogl`; the layout enables its optional `blueTint` prop and controls speed and resolution. The veil respects reduced motion, pauses when the tab is hidden, and falls back to the black canvas when WebGL is unavailable. Palette tokens live in `src/app.css`.
+
 ## Run locally
 
 Requires Node.js, pnpm, and desktop Chrome or Edge with Web Serial support.

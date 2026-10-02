@@ -135,9 +135,9 @@
     inset: auto 0 0;
     height: var(--amplitude);
     z-index: -1;
-    background: color-mix(in srgb, var(--violet) 24%, var(--surface-raised));
+    background: color-mix(in srgb, var(--accent) 24%, var(--surface-raised));
     border-top: 1px solid
-      color-mix(in srgb, var(--violet-bright) 35%, transparent);
+      color-mix(in srgb, var(--accent-bright) 35%, transparent);
   }
   .impulse-content {
     height: 100%;
@@ -148,7 +148,7 @@
     gap: 3px;
   }
   .impulse-content svg {
-    color: var(--violet-bright);
+    color: var(--accent-bright);
     flex: none;
   }
   .impulse-content strong {
@@ -163,15 +163,15 @@
     white-space: nowrap;
   }
   .impulse-pad:hover {
-    border-color: var(--violet);
+    border-color: var(--accent);
     background: var(--surface-soft);
   }
   .impulse-pad.selected {
-    border-color: var(--violet-bright);
-    box-shadow: inset 0 0 0 1px var(--violet-bright);
+    border-color: var(--accent-bright);
+    box-shadow: inset 0 0 0 1px var(--accent-bright);
   }
   .impulse-pad:focus-visible {
-    outline: 2px solid var(--violet-bright);
+    outline: 2px solid var(--accent-bright);
     outline-offset: 2px;
   }
   .impulse-empty {

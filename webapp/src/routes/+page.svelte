@@ -1082,6 +1082,6 @@
   }
   .pulse-choice.active-effect {
     background: var(--surface-soft);
-    box-shadow: inset 0 0 0 1px var(--violet-bright);
+    box-shadow: inset 0 0 0 1px var(--accent-bright);
   }
 </style>
