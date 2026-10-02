@@ -97,7 +97,6 @@ main {
 .eyebrow,
 .top-right,
 .kicker,
-.section-num,
 .group-label,
 .hero-side p,
 .track-footer,
@@ -239,12 +238,6 @@ footer {
   align-items: baseline;
   column-gap: 5px;
 }
-.section-num {
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: #c7894f;
-  font-weight: 700;
-}
 .device-strip strong {
   font: 700 11px "Space Grotesk Variable";
   letter-spacing: 0.15em;
@@ -293,7 +286,7 @@ footer {
 }
 .workspace {
   display: grid;
-  grid-template-columns: minmax(245px, 290px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(245px, 290px);
   gap: 20px;
 }
 .palette,
@@ -764,7 +757,7 @@ footer i {
 }
 @media (max-width: 1100px) {
   .workspace {
-    grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 250px;
   }
   .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -815,11 +808,8 @@ footer i {
     display: flex;
     flex-direction: column;
   }
-  .palette {
-    order: 1;
-  }
-  .editor-column {
-    order: 2;
+  .empty-track span {
+    transform: rotate(90deg);
   }
   .device-strip {
     align-items: flex-start;
@@ -833,7 +823,7 @@ footer i {
   }
   .timeline-controls {
     width: 100%;
-    margin-left: 23px;
+    margin-left: 0;
   }
   .track {
     margin: 0 17px;
@@ -921,7 +911,6 @@ button:disabled { opacity: .45; }
   border-radius: var(--radius);
   box-shadow: 0 16px 38px rgba(0,0,0,.16);
 }
-.section-num { color: var(--violet-bright); }
 .device-strip p { color: var(--muted); }
 .device-actions .p-button { border-radius: 12px; }
 .device-actions .p-button, .device-actions button:not(.text-button) { border-radius: 12px; }

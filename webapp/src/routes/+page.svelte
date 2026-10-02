@@ -478,7 +478,7 @@
 </script>
 
 <svelte:head
-  ><title>Haptic Studio — shape the feel</title><meta
+  ><title>LRA LAB</title><meta
     name="description"
     content="Compose and preview five-second LRA haptic signatures."
   /></svelte:head
@@ -687,46 +687,9 @@
             >
           </div>{/if}
         <div class="workspace">
-          <section class="palette">
-            <div class="section-head">
-              <span class="section-num">B</span>
-              <div>
-                <h2>Effect library</h2>
-                <p>ROM effects · LRA library 6</p>
-              </div>
-            </div>
-            <div class="palette-group">
-              <span class="group-label">BUILT-IN IMPULSES</span
-              >{#each EFFECTS as effect (effect.id)}<button
-                  class="effect-choice"
-                  onclick={() => addEffect(effect.id)}
-                  disabled={total + effect.durationMs > MAX_MS ||
-                    signature.blocks.length >= 32}
-                  ><span class="effect-glyph">{effect.id < 10 ? "◢" : "▥"}</span
-                  ><span class="effect-name"
-                    >{effect.name}<small>{effect.strength} STRENGTH</small
-                    ></span
-                  ><span class="effect-duration">{effect.durationMs} ms</span
-                  ><span class="effect-plus">+</span></button
-                >{/each}
-            </div>
-            <div class="palette-group pulse-group">
-              <span class="group-label">MAKE YOUR OWN</span><button
-                class="pulse-choice"
-                onclick={addPulse}
-                disabled={total + 300 > MAX_MS || signature.blocks.length >= 32}
-                ><span class="pulse-icon">〰</span><span
-                  ><strong>Custom pulse</strong><small
-                    >Shape amplitude over time</small
-                  ></span
-                ><span>↗</span></button
-              >
-            </div>
-          </section>
           <div class="editor-column">
             <section class="timeline-section">
               <div class="section-head timeline-head">
-                <span class="section-num">C</span>
                 <div>
                   <h2>Timeline</h2>
                   <p>One track · up to 5 seconds</p>
@@ -760,7 +723,7 @@
                     ></i>{/each}
                 </div>
                 {#if signature.blocks.length === 0}<div class="empty-track">
-                    Add an effect or pulse to start your signature <span>←</span
+                    Add an effect or pulse to start your signature <span>→</span
                     >
                   </div>{/if}{#each signature.blocks as block (block.id)}<button
                     class:chosen={selectedId === block.id}
@@ -800,7 +763,6 @@
             </section>
             <section class="inspector">
               <div class="section-head">
-                <span class="section-num">D</span>
                 <div>
                   <h2>Shape &amp; arrange</h2>
                   <p>
@@ -944,6 +906,41 @@
                 </div>{/if}
             </section>
           </div>
+          <section class="palette">
+            <div class="section-head">
+              <div>
+                <h2>Effect library</h2>
+                <p>ROM effects · LRA library 6</p>
+              </div>
+            </div>
+            <div class="palette-group">
+              <span class="group-label">BUILT-IN IMPULSES</span
+              >{#each EFFECTS as effect (effect.id)}<button
+                  class="effect-choice"
+                  onclick={() => addEffect(effect.id)}
+                  disabled={total + effect.durationMs > MAX_MS ||
+                    signature.blocks.length >= 32}
+                  ><span class="effect-glyph">{effect.id < 10 ? "◢" : "▥"}</span
+                  ><span class="effect-name"
+                    >{effect.name}<small>{effect.strength} STRENGTH</small
+                    ></span
+                  ><span class="effect-duration">{effect.durationMs} ms</span
+                  ><span class="effect-plus">+</span></button
+                >{/each}
+            </div>
+            <div class="palette-group pulse-group">
+              <span class="group-label">MAKE YOUR OWN</span><button
+                class="pulse-choice"
+                onclick={addPulse}
+                disabled={total + 300 > MAX_MS || signature.blocks.length >= 32}
+                ><span class="pulse-icon">〰</span><span
+                  ><strong>Custom pulse</strong><small
+                    >Shape amplitude over time</small
+                  ></span
+                ><span>↗</span></button
+              >
+            </div>
+          </section>
         </div>
         <footer>
           <span>LRA LAB</span><span>AddeyX</span><span>LOCAL BY DESIGN</span>
