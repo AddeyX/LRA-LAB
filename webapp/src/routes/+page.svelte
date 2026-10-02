@@ -305,7 +305,7 @@
             <span>{(total / 1000).toFixed(2)}</span><small>/ 5.00 SEC</small>
           </div>
           <div class="meter">
-            <span style:width={`${(total / MAX_MS) * 100}%`}></span>
+            <span style:transform={`scaleX(${total / MAX_MS})`}></span>
           </div>
           <p>SEQUENCE LENGTH</p>
         </div>
