@@ -37,6 +37,8 @@
   let copied = $state(false);
   let view = $state<"studio" | "setup">("studio");
   let fileOpen = $state(false);
+  let deviceOpen = $state(false);
+  let calibrating = $state(false);
   let filePane = $state<"main" | "open">("main");
   let saveDialog = $state(false);
   let newDialog = $state(false);
@@ -356,6 +358,7 @@
     }
   }
   async function connect() {
+    if (busy || connected) return;
     busy = true;
     error = "";
     try {
@@ -364,6 +367,7 @@
       device.onMessage = deviceMessage;
       device.onDisconnect = (reason) => {
         connected = false;
+        deviceOpen = false;
         firmwareProfile = null;
         calibrated = false;
         playing = false;
@@ -385,8 +389,10 @@
     }
   }
   async function calibrate() {
-    if (!serial) return;
+    if (!serial || busy || playing) return;
+    calibrating = true;
     busy = true;
+    notice = "Calibrating LRA…";
     error = "";
     calibrated = false;
     try {
@@ -398,6 +404,7 @@
       error = cause instanceof Error ? cause.message : "Calibration failed.";
     } finally {
       busy = false;
+      calibrating = false;
     }
   }
   async function preview() {
@@ -547,11 +554,75 @@
         >
       </div>
       <div class="top-right">
-        <span class="device-indicator"
-          ><span class:online={connected} class="status-dot"></span>{connected
-            ? "DEVICE ONLINE"
-            : "DEVICE OFFLINE"}</span
-        >
+        {#if connected}
+          <Popover
+            bind:open={deviceOpen}
+            label="Board connection and calibration"
+            theme="dark"
+            triggerClass="board-button board-connected"
+          >
+            {#snippet trigger()}
+              <span
+                class="status-dot"
+                class:online={calibrated}
+                class:needs-calibration={!calibrated}
+              ></span>
+              <span>{calibrated ? "Board connected" : "Needs calibration"}</span
+              >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg
+              >
+            {/snippet}
+            <div class="board-popover">
+              <strong>Board connected</strong>
+              <Badge variant={calibrated ? "success" : "neutral"}
+                >{calibrated ? "CALIBRATED" : "NEEDS CALIBRATION"}</Badge
+              >
+              <p role="status">{notice}</p>
+              {#if error}<p class="board-error" role="alert">{error}</p>{/if}
+              <Button
+                variant="secondary"
+                onclick={calibrate}
+                disabled={busy || playing}
+                >{calibrating
+                  ? "Calibrating…"
+                  : calibrated
+                    ? "Recalibrate"
+                    : "Calibrate"}</Button
+              >
+              <div class="file-menu-divider"></div>
+              <button
+                class="board-disconnect"
+                disabled={busy || playing}
+                onclick={async () => {
+                  deviceOpen = false;
+                  try {
+                    await serial?.disconnect();
+                    connected = false;
+                    calibrated = false;
+                    firmwareProfile = null;
+                    notice = "Board disconnected. Editor works offline.";
+                  } catch (cause) {
+                    error =
+                      cause instanceof Error
+                        ? cause.message
+                        : "Could not disconnect.";
+                  }
+                }}>Disconnect</button
+              >
+            </div>
+          </Popover>
+        {:else}
+          <button class="board-button" onclick={connect} disabled={busy}
+            >{busy ? "Connecting…" : "Connect board"}</button
+          >
+        {/if}
         <button
           class="setup-button"
           onclick={() => (view = view === "studio" ? "setup" : "studio")}
@@ -600,32 +671,7 @@
             <p>SEQUENCE LENGTH</p>
           </div>
         </section>
-        <section class="device-strip" aria-label="Device connection">
-          <div>
-            <span class="section-num">A</span><strong>DEVICE LINK</strong>
-            <p>{notice}</p>
-          </div>
-          <div class="device-actions">
-            {#if connected}<Badge variant={calibrated ? "success" : "neutral"}
-                >{calibrated ? "CALIBRATED" : "NEEDS CALIBRATION"}</Badge
-              ><Button
-                variant="secondary"
-                onclick={calibrate}
-                disabled={busy || playing}>Calibrate</Button
-              ><button
-                class="text-button"
-                onclick={() => {
-                  void serial?.disconnect();
-                  connected = false;
-                  calibrated = false;
-                }}>Disconnect</button
-              >{:else}<Button
-                variant="primary"
-                onclick={connect}
-                disabled={busy}>Connect board ↗</Button
-              >{/if}
-          </div>
-        </section>
+        <p class="studio-notice" role="status">{notice}</p>
         {#if error}<div class="error-banner" role="alert">
             <strong>CHECK THIS</strong><span>{error}</span><button
               onclick={() => (error = "")}
