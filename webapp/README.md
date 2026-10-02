@@ -24,7 +24,11 @@ pnpm dev
 
 Open the local URL printed by Vite (bound to `127.0.0.1`). To feel a signature, first build and upload the matching [`firmware`](../firmware/README.md), connect the board, and select **Calibrate**. Add an effect or pulse, adjust it in **Shape & arrange**, then select **Preview**. **Stop** ends active playback. Close any serial monitor before connecting.
 
-Editor use without a board is possible; hardware preview and calibration require the board. The active valid draft is saved in local storage and restored on reload. Copy C++ from **Take it to firmware** to integrate a signature into another Arduino project. Generated code expects an initialized and calibrated `Adafruit_DRV2605` instance.
+Editor use without a board is possible; hardware preview and calibration require the board. The active valid draft is saved in local storage and restored on reload. **File → New** starts a fresh signature and asks whether to save unsaved edits first. **Save** creates or updates a named browser project. **Save As** downloads a portable signature JSON file; **Open** loads a browser project or imports JSON from your computer. Browser projects stay in this browser profile, while JSON files can be moved elsewhere. Opening another project with unsaved edits asks before replacing them.
+
+**File → Generate Code** opens a focused C++ view with Copy and Download `.cpp`. The existing **Take it to firmware** section also shows generated code. Generated code expects an initialized and calibrated `Adafruit_DRV2605` instance.
+
+**Setup** opens a step-by-step guide for hardware, wiring, firmware upload, browser preparation, connection, and calibration. Connect and Calibrate work directly in the guide. **File → Settings** shows the live firmware profile and calibration status when connected, alongside bundled firmware register defaults. The defaults are not live register readbacks, and this release does not change firmware settings.
 
 ## Code map
 
@@ -34,6 +38,8 @@ Editor use without a board is possible; hardware preview and calibration require
 | [`src/lib/signature.ts`](src/lib/signature.ts) | Signature schema, effect catalog, validation, amplitude math |
 | [`src/lib/serial.ts`](src/lib/serial.ts) | Web Serial connection and request/response handling |
 | [`src/lib/export.ts`](src/lib/export.ts) | Arduino C++ generation |
+| [`src/lib/projects.ts`](src/lib/projects.ts) | Browser project storage and JSON import validation |
+| [`src/lib/SetupView.svelte`](src/lib/SetupView.svelte) | Interactive device setup guide |
 | [`src/app.css`](src/app.css) | App styles |
 
 The app sends the full signature over 115200 baud USB serial as newline-delimited JSON. Firmware validates and buffers it, then plays locally on `PREVIEW`. Protocol version, effect catalog version, signature limits, and firmware behavior are described in the [firmware README](../firmware/README.md).

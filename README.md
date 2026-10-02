@@ -23,7 +23,7 @@ The browser sends a complete signature to the board. Firmware stores it in RAM a
 
 - Compose one sequential track up to five seconds with built-in DRV2605L effects and custom amplitude envelopes.
 - Connect through desktop Chrome or Edge, calibrate the LRA, preview a signature, and stop playback.
-- Keep the current draft in browser local storage and copy generated Arduino C++.
+- Keep the current draft in browser local storage, save named browser projects, import/export signature JSON, and copy or download generated Arduino C++.
 - Reject invalid signatures on both sides of the serial connection. Firmware enforces a five-second playback limit.
 
 This setup runs locally. It has no account, cloud storage, or server API. Current hardware profile targets one ESP32-C3, one DRV2605L, and a 170 Hz LRA; see [`firmware/README.md`](firmware/README.md) before connecting an actuator.
