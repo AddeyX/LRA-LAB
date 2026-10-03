@@ -4,10 +4,12 @@
     type FileAction,
   } from "$lib/components/header/FileMenu.svelte";
   import IslandButton from "$lib/components/header/IslandButton.svelte";
-  import SequenceMeter from "$lib/components/header/SequenceMeter.svelte";
+  import PlaybackIsland from "$lib/components/header/PlaybackIsland.svelte";
   import StudioHeader from "$lib/components/header/StudioHeader.svelte";
+  import type { Playback } from "$lib/playback.svelte";
 
   let {
+    playback,
     project,
     dirty,
     view,
@@ -27,7 +29,9 @@
     oncalibrate,
     ondisconnect,
     ontoggleview,
+    onstop,
   }: {
+    playback: Playback;
     project: string;
     dirty: boolean;
     view: "studio" | "setup";
@@ -47,6 +51,7 @@
     oncalibrate: () => void;
     ondisconnect: () => void;
     ontoggleview: () => void;
+    onstop: () => void;
   } = $props();
 </script>
 
@@ -55,7 +60,7 @@
     <FileMenu {anchor} {dirty} onaction={onfile} />
   {/snippet}
   {#snippet center()}
-    <SequenceMeter {totalMs} {maxMs} {beats} />
+    <PlaybackIsland {playback} {totalMs} {maxMs} {beats} {onstop} />
   {/snippet}
   {#snippet actions(anchor)}
     <BoardMenu

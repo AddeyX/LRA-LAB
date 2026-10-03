@@ -1,6 +1,7 @@
 <script lang="ts">
   import HapticTimeline from "$lib/HapticTimeline.svelte";
   import type { BrushKind } from "$lib/pulse-library";
+  import type { PlaybackStatus } from "$lib/playback.svelte";
   import type { Block } from "$lib/signature";
   import Card from "./Card.svelte";
 
@@ -8,6 +9,7 @@
     blocks,
     selectedId,
     brush,
+    playhead,
     canPreview,
     canStop,
     playing,
@@ -23,6 +25,7 @@
     blocks: Block[];
     selectedId: string | null;
     brush: Block;
+    playhead: { ms: number; status: PlaybackStatus } | null;
     canPreview: boolean;
     canStop: boolean;
     playing: boolean;
@@ -65,6 +68,7 @@
     {blocks}
     {selectedId}
     {brush}
+    {playhead}
     {onselect}
     {onplace}
     {onedit}

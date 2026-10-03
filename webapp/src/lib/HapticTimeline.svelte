@@ -4,11 +4,13 @@
   import { GRID_MS, editTimeline, resizePulse, snapTime } from "./timeline";
   import ScrubField from "./components/ScrubField.svelte";
   import type { BrushKind } from "./pulse-library";
+  import type { PlaybackStatus } from "./playback.svelte";
 
   let {
     blocks,
     selectedId,
     brush,
+    playhead = null,
     onselect,
     onplace,
     onedit,
@@ -18,6 +20,7 @@
     blocks: Block[];
     selectedId: string | null;
     brush: Block;
+    playhead?: { ms: number; status: PlaybackStatus } | null;
     onselect: (id: string) => boolean | void;
     onplace: (timeMs: number, kind?: BrushKind) => void;
     onedit: (block: Block) => void;
@@ -27,7 +30,100 @@
 
   let lane: HTMLDivElement;
   let viewport: HTMLDivElement;
+  let minimap: HTMLDivElement;
   let zoom = $state(100);
+  let scroll = $state({ left: 0, width: 1, client: 1 });
+  let scrub = $state<{ pointerId: number; grabMs: number } | null>(null);
+  const measure = () => {
+    if (!viewport) return;
+    scroll = {
+      left: viewport.scrollLeft,
+      width: Math.max(1, viewport.scrollWidth),
+      client: viewport.clientWidth,
+    };
+  };
+  $effect(() => {
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    observer.observe(viewport.firstElementChild as Element);
+    measure();
+    return () => observer.disconnect();
+  });
+  let viewStartMs = $derived((scroll.left / scroll.width) * MAX_MS);
+  let viewSpanMs = $derived(Math.min(MAX_MS, (scroll.client / scroll.width) * MAX_MS));
+  let endMs = $derived(
+    Math.max(0, ...blocks.map((block: Block) => block.startMs + blockDuration(block))),
+  );
+  const pct = (ms: number) => `${(ms / MAX_MS) * 100}%`;
+  const seconds = (ms: number) => (ms / 1000).toFixed(2);
+  function reveal(startMs: number, behavior: ScrollBehavior = "auto") {
+    viewport.scrollTo({
+      left: (Math.max(0, startMs) / MAX_MS) * viewport.scrollWidth,
+      behavior,
+    });
+  }
+  const centerOn = (ms: number, behavior?: ScrollBehavior) =>
+    reveal(ms - viewSpanMs / 2, behavior);
+  const minimapMs = (clientX: number) => {
+    const bounds = minimap.getBoundingClientRect();
+    return Math.min(
+      MAX_MS,
+      Math.max(0, ((clientX - bounds.left) / bounds.width) * MAX_MS),
+    );
+  };
+  function beginScrub(event: PointerEvent) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    minimap.focus({ preventScroll: true });
+    minimap.setPointerCapture(event.pointerId);
+    const ms = minimapMs(event.clientX);
+    const inWindow = ms >= viewStartMs && ms <= viewStartMs + viewSpanMs;
+    const grabMs = inWindow ? ms - viewStartMs : viewSpanMs / 2;
+    scrub = { pointerId: event.pointerId, grabMs };
+    reveal(ms - grabMs);
+  }
+  function moveScrub(event: PointerEvent) {
+    if (scrub?.pointerId === event.pointerId)
+      reveal(minimapMs(event.clientX) - scrub.grabMs);
+  }
+  function endScrub(event: PointerEvent) {
+    if (scrub?.pointerId === event.pointerId) scrub = null;
+  }
+  function minimapKeys(event: KeyboardEvent) {
+    const sorted = [...blocks].sort((a, b) => a.startMs - b.startMs);
+    const center = viewStartMs + viewSpanMs / 2;
+    const jump = (block: Block | undefined) =>
+      block && centerOn(block.startMs + blockDuration(block) / 2, "smooth");
+    const actions: Record<string, () => void> = {
+      ArrowLeft: () => reveal(viewStartMs - viewSpanMs / 4, "smooth"),
+      ArrowRight: () => reveal(viewStartMs + viewSpanMs / 4, "smooth"),
+      PageUp: () => reveal(viewStartMs - viewSpanMs, "smooth"),
+      PageDown: () => reveal(viewStartMs + viewSpanMs, "smooth"),
+      Home: () => reveal(0, "smooth"),
+      End: () => reveal(MAX_MS, "smooth"),
+      ArrowUp: () =>
+        jump(sorted.find((b) => b.startMs + blockDuration(b) / 2 > center + 1)),
+      ArrowDown: () =>
+        jump(
+          sorted.findLast((b) => b.startMs + blockDuration(b) / 2 < center - 1),
+        ),
+    };
+    const action = actions[event.key];
+    if (!action) return;
+    event.preventDefault();
+    action();
+  }
+  // Keep the arm on screen without fighting a user who is scrubbing.
+  let followUntil = 0;
+  $effect(() => {
+    if (!playhead || playhead.status !== "playing" || scrub) return;
+    const ms = playhead.ms;
+    if (performance.now() < followUntil) return;
+    if (ms < viewStartMs || ms > viewStartMs + viewSpanMs * 0.9) {
+      followUntil = performance.now() + 450;
+      reveal(ms - viewSpanMs * 0.1, "smooth");
+    }
+  });
   let hoverMs = $state<number | null>(null);
   let drag = $state<{
     original: Block;
@@ -180,7 +276,7 @@
   aria-label="Haptic timeline"
   dir="ltr"
 >
-  <div class="sequencer-viewport" bind:this={viewport}>
+  <div class="sequencer-viewport" bind:this={viewport} onscroll={measure}>
     <div
       class="sequencer-canvas"
       style:width={distance((steps.length * zoom) / 100)}
@@ -296,8 +392,82 @@
           </div>
         {/if}
       </div>
+      {#if playhead}
+        <div
+          class="play-arm"
+          class:moving={playhead.status === "playing"}
+          class:failed={playhead.status === "failed"}
+          style:left={x(playhead.ms)}
+          aria-hidden="true"
+        >
+          {#if playhead.status !== "playing" && playhead.status !== "starting"}
+            <span
+              >{playhead.status === "completed"
+                ? "Completed"
+                : playhead.status === "failed"
+                  ? `Failed · ${seconds(playhead.ms)} s`
+                  : `Stopped · ${seconds(playhead.ms)} s`}</span
+            >
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
+</div>
+<div class="minimap-row">
+  <div
+    class="minimap"
+    class:scrubbing={!!scrub}
+    bind:this={minimap}
+    role="slider"
+    tabindex="0"
+    aria-label="Timeline overview"
+    aria-valuemin={0}
+    aria-valuemax={MAX_MS}
+    aria-valuenow={Math.round(viewStartMs)}
+    aria-valuetext={`Showing ${seconds(viewStartMs)} to ${seconds(viewStartMs + viewSpanMs)} s`}
+    aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home End"
+    title="Drag to scrub the timeline · ↑ ↓ jump between beats"
+    onpointerdown={beginScrub}
+    onpointermove={moveScrub}
+    onpointerup={endScrub}
+    onpointercancel={endScrub}
+    onkeydown={minimapKeys}
+  >
+    {#if endMs > 0}
+      <span class="minimap-used" style:width={pct(endMs)} aria-hidden="true"></span>
+    {/if}
+    {#each blocks as block (block.id)}
+      <span
+        class="minimap-beat"
+        class:custom={block.type === "pulse"}
+        class:selected={selectedId === block.id}
+        style:left={pct(block.startMs)}
+        style:width={pct(blockDuration(block))}
+        aria-hidden="true"
+      ></span>
+    {/each}
+    {#if blocks.length === 0}
+      <span class="minimap-empty">Overview of all 5 s · beats appear here</span>
+    {/if}
+    {#if playhead}
+      <span
+        class="minimap-arm"
+        class:failed={playhead.status === "failed"}
+        style:left={pct(playhead.ms)}
+        aria-hidden="true"
+      ></span>
+    {/if}
+    <span
+      class="minimap-window"
+      style:left={pct(viewStartMs)}
+      style:width={pct(viewSpanMs)}
+      aria-hidden="true"
+    ></span>
+  </div>
+  <span class="minimap-readout" aria-hidden="true"
+    >{seconds(viewStartMs)}–{seconds(viewStartMs + viewSpanMs)} s</span
+  >
 </div>
 
 <style lang="postcss">
@@ -478,6 +648,97 @@
   }
   .beat-ghost.invalid {
     @apply border-danger bg-danger-surface text-danger-ink;
+  }
+  .play-arm {
+    @apply absolute top-0 bottom-0 pointer-events-none;
+    z-index: 5;
+    width: calc(var(--spacing) * 0.5);
+    margin-left: calc(var(--spacing) * -0.25);
+    background: var(--color-ink);
+    opacity: 0.55;
+    transition: opacity 0.3s var(--ease-butter);
+  }
+  .play-arm.moving {
+    opacity: 1;
+  }
+  .play-arm::before {
+    content: "";
+    @apply absolute top-0;
+    left: 50%;
+    width: calc(var(--spacing) * 2.5);
+    height: calc(var(--spacing) * 2.5);
+    border-radius: 50%;
+    background: inherit;
+    transform: translate(-50%, -25%);
+  }
+  .play-arm.failed {
+    @apply bg-danger;
+  }
+  .play-arm > span {
+    @apply absolute whitespace-nowrap text-size-10 text-ink bg-surface-raised tabular-nums;
+    top: calc(var(--spacing) * 1);
+    left: calc(var(--spacing) * 2.5);
+    padding: calc(var(--spacing) * 0.5) calc(var(--spacing) * 1.5);
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.03em;
+  }
+  .minimap-row {
+    @apply flex items-center gap-3;
+    margin-top: calc(var(--spacing) * 2);
+  }
+  .minimap {
+    @apply relative flex-1 min-w-0 overflow-hidden bg-surface-raised cursor-pointer;
+    height: calc(var(--spacing) * 7);
+    border-radius: var(--radius-control);
+    touch-action: none;
+  }
+  .minimap:focus-visible {
+    outline: var(--outline-width-focus) solid var(--color-accent-bright);
+    outline-offset: calc(var(--spacing) * 0.5);
+  }
+  .minimap-used {
+    @apply absolute inset-y-0 left-0;
+    background: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  }
+  .minimap-beat {
+    @apply absolute bg-accent;
+    inset-block: calc(var(--spacing) * 1.5);
+    min-width: calc(var(--spacing) * 0.75);
+    border-radius: var(--radius-hairline);
+  }
+  .minimap-beat.custom {
+    @apply bg-butter;
+  }
+  .minimap-beat.selected {
+    box-shadow: 0 0 0 calc(var(--spacing) * 0.5) var(--color-ink);
+  }
+  .minimap-empty {
+    @apply absolute inset-0 flex items-center justify-center text-size-11 text-subtle pointer-events-none;
+    letter-spacing: 0.03em;
+  }
+  .minimap-arm {
+    @apply absolute inset-y-0 bg-ink pointer-events-none;
+    width: calc(var(--spacing) * 0.5);
+    margin-left: calc(var(--spacing) * -0.25);
+  }
+  .minimap-arm.failed {
+    @apply bg-danger;
+  }
+  .minimap-window {
+    @apply absolute inset-y-0 pointer-events-none;
+    border: calc(var(--spacing) * 0.5) solid var(--color-ink);
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    transition: border-color 0.2s var(--ease-butter);
+  }
+  .minimap:not(.scrubbing):not(:focus-visible) .minimap-window {
+    border-color: color-mix(in srgb, var(--color-ink) 55%, transparent);
+  }
+  .minimap-readout {
+    @apply shrink-0 text-size-11 text-muted tabular-nums;
+    min-width: calc(var(--spacing) * 19);
+    text-align: end;
+    letter-spacing: 0.03em;
   }
   @variant max-studio {
     .timeline-hint {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import SetupView from "$lib/SetupView.svelte";
   import PulseLibrary from "$lib/components/PulseLibrary.svelte";
   import type { FileAction } from "$lib/components/header/FileMenu.svelte";
@@ -40,13 +40,16 @@
     type Signature,
   } from "$lib/signature";
   import { exportCpp } from "$lib/export";
+  import { Playback } from "$lib/playback.svelte";
 
   let signature = $state<Signature>(emptySignature());
   let selectedId = $state<string | null>(null);
   let connected = $state(false);
   let firmwareProfile = $state<string | null>(null);
   let calibrated = $state(false);
-  let playing = $state(false);
+  const playback = new Playback();
+  let playing = $derived(playback.active);
+  let boardPlaying = $derived(playing && playback.source === "board");
   let busy = $state(false);
   let notice = $state("Connect board to preview. Editor works offline.");
   let error = $state("");
@@ -95,16 +98,29 @@
   let code = $derived.by(() => (validation ? "" : exportCpp(signature)));
   let brushKind = $state<BrushKind>(1);
   let brush = $derived(makeBeat(brushKind, 0, "placement-brush"));
-  let canPreview = $derived(
-    connected && calibrated && !validation && !busy && !playing,
-  );
+  let boardReady = $derived(connected && calibrated);
+  let canPreview = $derived(!validation && !busy && !playing);
   let previewHint = $derived(
-    !connected
-      ? "Connect a board to preview"
-      : !calibrated
-        ? "Calibrate the board to preview"
-        : (validation ?? "Play on board"),
+    validation ??
+      (boardReady
+        ? "Play on board"
+        : connected
+          ? "Simulate preview · calibrate the board to play on hardware"
+          : "Simulate preview · no board needed"),
   );
+  let playhead = $derived(
+    playback.status === "idle"
+      ? null
+      : { ms: playback.positionMs, status: playback.status },
+  );
+  $effect(() => {
+    void signature;
+    untrack(() => playback.clear());
+  });
+  $effect(() => {
+    if (playback.status === "completed")
+      untrack(() => (notice = "Preview finished."));
+  });
   let pointBudget = $derived(
     32 -
       signature.blocks.reduce(
@@ -350,13 +366,18 @@
     updateBlock(resizePulse(block, value));
   }
   function deviceMessage(message: DeviceMessage) {
-    if (message.type === "DONE" || message.type === "STOPPED") {
-      playing = false;
-      notice =
-        message.type === "DONE" ? "Preview finished." : "Preview stopped.";
+    if (!boardPlaying) {
+      if (message.type === "ERROR")
+        error = String(message.message || "Board fault.");
+      return;
+    }
+    if (message.type === "DONE") playback.finish();
+    if (message.type === "STOPPED") {
+      playback.stop();
+      notice = "Preview stopped.";
     }
     if (message.type === "ERROR") {
-      playing = false;
+      playback.stop("failed");
       error = String(message.message || "Board fault.");
     }
   }
@@ -372,7 +393,7 @@
         connected = false;
         firmwareProfile = null;
         calibrated = false;
-        playing = false;
+        if (boardPlaying) playback.stop("failed");
         notice = reason;
       };
       const ready = await device.connect();
@@ -391,7 +412,7 @@
     }
   }
   async function calibrate() {
-    if (!serial || busy || playing) return;
+    if (!serial || busy || boardPlaying) return;
     calibrating = true;
     busy = true;
     notice = "Calibrating LRA…";
@@ -411,6 +432,7 @@
   }
   async function disconnect() {
     try {
+      if (boardPlaying) playback.stop();
       await serial?.disconnect();
       connected = false;
       calibrated = false;
@@ -421,27 +443,45 @@
     }
   }
   async function preview() {
-    if (!serial || validation || busy || playing) return;
-    busy = true;
+    if (validation || busy || playing) return;
+    const device = boardReady ? serial : null;
+    playback.prime();
+    playback.begin(
+      $state.snapshot(signature),
+      device ? "board" : "simulation",
+    );
     error = "";
+    if (!device) {
+      playback.run();
+      notice = "Simulating preview. Output is an approximation.";
+      return;
+    }
+    busy = true;
     try {
-      if (await serial.play(signature)) {
-        playing = true;
+      if (await device.play(signature)) {
+        playback.run();
         notice = "Playing signature on board…";
-      }
+      } else playback.stop();
     } catch (cause) {
+      playback.stop("failed");
       error = cause instanceof Error ? cause.message : "Preview failed.";
     } finally {
       busy = false;
     }
   }
   async function stop() {
-    if (!serial) return;
+    if (!playing) return;
+    if (playback.source === "simulation" || !serial) {
+      playback.stop();
+      notice = "Preview stopped.";
+      return;
+    }
     try {
       await serial.stop();
-      playing = false;
+      playback.stop();
       notice = "Preview stopped.";
     } catch (cause) {
+      playback.stop("failed");
       error = cause instanceof Error ? cause.message : "Stop failed.";
     }
   }
@@ -476,6 +516,7 @@
     }
     return () => {
       void serial?.disconnect();
+      playback.dispose();
     };
   });
 </script>
@@ -488,6 +529,7 @@
 >
 <main class="lab">
   <StudioTopBar
+    {playback}
     project={projectName || "Untitled signature"}
     {dirty}
     {view}
@@ -498,7 +540,7 @@
     {calibrated}
     {calibrating}
     {busy}
-    {playing}
+    playing={boardPlaying}
     {notice}
     {error}
     onhome={() => leaveLibrary(() => (view = "studio"))}
@@ -506,6 +548,7 @@
     onconnect={connect}
     oncalibrate={calibrate}
     ondisconnect={disconnect}
+    onstop={stop}
     ontoggleview={() =>
       leaveLibrary(() => (view = view === "studio" ? "setup" : "studio"))}
   />
@@ -535,8 +578,9 @@
         blocks={signature.blocks}
         {selectedId}
         {brush}
+        {playhead}
         {canPreview}
-        canStop={connected && playing}
+        canStop={playing}
         {playing}
         {previewHint}
         hasPreset={(id) => presets.some((p) => p.id === id)}
