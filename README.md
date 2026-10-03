@@ -2,6 +2,10 @@
 
 LRA Lab is a local workspace for designing haptic signatures and feeling them on an LRA (linear resonant actuator). Its long-term direction is a hands-on editor with the immediacy of a music production tool: compose a pattern, adjust its timing and intensity, and preview it on hardware. The current release is a focused single-track studio backed by ESP32-C3 firmware and a small serial protocol.
 
+## V1 scope
+
+The [definitive V1 scope](webapp/docs/v1-scope.md) records planned workspace, playback, hardware setup, firmware download, and static deployment requirements. It takes precedence over earlier product scope documents. The sections below describe the current implementation.
+
 ## How it fits together
 
 ```text

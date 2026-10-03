@@ -2,6 +2,10 @@
 
 The web app is LRA Lab's local signature editor. It gives users a timeline for composing haptic patterns, a direct preview path to connected hardware, and Arduino C++ export. The current editor has one sequential track with a five-second limit.
 
+## V1 scope
+
+See the [definitive V1 scope](docs/v1-scope.md) for planned requirements and release criteria. The sections below describe the current implementation.
+
 ## Stack and current setup
 
 - SvelteKit and Svelte 5 with TypeScript, built by Vite; `adapter-auto` handles the SvelteKit build.
