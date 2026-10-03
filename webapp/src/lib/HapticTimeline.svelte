@@ -278,9 +278,8 @@
 
   .sequencer-toolbar {
     @apply flex items-center gap-4;
-    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 5);
-    border-block: calc(var(--spacing) * 0.25) solid var(--color-line);
-    @apply bg-surface text-size-10;
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 6);
+    @apply text-size-10;
   }
   .snap-label {
     @apply flex items-center gap-2 text-muted tracking-snap whitespace-nowrap;
@@ -302,9 +301,7 @@
     @apply ms-auto flex gap-2 items-center text-muted text-size-9 tracking-detail;
   }
   .sequencer-body {
-    @apply grid grid-cols-1 min-w-0 mx-5;
-    border: calc(var(--spacing) * 0.25) solid var(--color-line);
-    @apply rounded-inset overflow-hidden;
+    @apply grid grid-cols-1 min-w-0 mx-6 rounded-none overflow-hidden;
   }
   .sequencer-viewport {
     @apply overflow-x-auto min-w-0 max-w-full;
@@ -465,14 +462,11 @@
     @apply border-danger bg-danger-surface text-danger-ink;
   }
   @variant max-studio {
-    .sequencer-body {
-      @apply mx-3;
-    }
     .timeline-hint {
       @apply hidden;
     }
     .sequencer-toolbar {
-      @apply gap-2 px-3;
+      @apply gap-2;
     }
   }
 </style>

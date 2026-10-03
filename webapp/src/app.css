@@ -249,15 +249,14 @@
     @apply text-size-11 m-0;
   }
   .palette-group {
-    border-top: calc(var(--spacing) * 0.25) solid var(--color-line);
-    padding: calc(var(--spacing) * 5) calc(var(--spacing) * 3.25) 0;
+    padding: calc(var(--spacing) * 5) calc(var(--spacing) * 6) 0;
   }
   .group-label {
     @apply text-size-10 tracking-group font-bold;
   }
   .palette-group > .group-label {
     @apply block;
-    margin: 0 calc(var(--spacing) * 2.75) calc(var(--spacing) * 3.25);
+    margin: 0 0 calc(var(--spacing) * 3.25);
   }
   .pulse-choice small {
     @apply block;
@@ -365,7 +364,6 @@
     @apply flex items-center gap-1.75;
     margin: calc(var(--spacing) * 5.5) calc(var(--spacing) * 6) 0;
     @apply pt-4.25;
-    border-top: calc(var(--spacing) * 0.25) solid var(--color-line);
   }
   .arrange span {
     @apply text-size-10 font-bold tracking-label-wide me-2.5;
@@ -607,10 +605,9 @@
   .palette,
   .timeline-section,
   .inspector {
-    @apply bg-surface;
-    border: calc(var(--spacing) * 0.25) solid var(--color-line);
+    border: 0;
     @apply rounded-panel;
-    box-shadow: var(--shadow-panel);
+    box-shadow: none;
   }
   .section-head h2,
   .inspector-top h3 {
@@ -714,8 +711,7 @@
         var(--color-control) 0 calc(var(--spacing) * 0.25),
         var(--color-field) calc(var(--spacing) * 0.25) 25%
       );
-    border: calc(var(--spacing) * 0.25) solid var(--color-control-line);
-    @apply rounded-control overflow-hidden;
+    @apply rounded-none overflow-hidden;
   }
   .envelope polyline {
     @apply stroke-accent-bright;
@@ -746,7 +742,10 @@
     }
   }
   .rail,
-  .topbar {
+  .topbar,
+  .palette,
+  .timeline-section,
+  .inspector {
     @apply bg-chrome;
     backdrop-filter: blur(var(--blur-chrome)) saturate(145%);
     -webkit-backdrop-filter: blur(var(--blur-chrome)) saturate(145%);
