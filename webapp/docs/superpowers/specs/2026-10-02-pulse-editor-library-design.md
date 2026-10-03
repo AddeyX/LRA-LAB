@@ -16,11 +16,11 @@ The timeline placement grid remains 40 ms. Envelope node timing uses a separate 
 | --- | --- |
 | 1: `.beat` | Reliable left/right arrow-key movement after selecting a timeline beat. |
 | 2: `.grid-cell` | Remove horizontal subdivision lines in the timeline and amplitude envelope; retain vertical time guides. |
-| 3: page line 689 | Proposed target: remove `Pattern 01 · single track · 40 ms grid`. This line identifies the subtitle; confirm the intended element before removal. |
+| 3: page line 689 | Confirmed: remove only the subtitle `Pattern 01 · single track · 40 ms grid`. |
 | 4: amplitude envelope | Replace the per-point numeric form with draggable, keyboard-accessible nodes. |
 | 5: `.impulse-empty` | Replace empty tiles with plus buttons; create, save, reload, and reuse custom pulse presets. |
 
-Generated Svelte scope classes are not feature selectors and must not be deleted globally. Retain the sequencer heading and Preview/Stop actions unless feedback item 3 is clarified otherwise.
+Generated Svelte scope classes are not feature selectors and must not be deleted globally. Retain the sequencer heading and Preview/Stop actions.
 
 ## Approach
 
@@ -47,7 +47,7 @@ The recommended flow uses the existing bottom inspector for either a selected be
 
 Remove only decorative horizontal subdivisions from `.beat-lane` and the amplitude envelope. Keep their vertical guides, waveforms, active nodes, focus/selection indicators, and necessary axis boundary such as the ruler separator. Do not remove structural separators elsewhere or the amplitude-fill boundary inside effect tiles.
 
-Remove the sequencer subtitle if item 3 is confirmed as that element. Preserve the heading and playback actions.
+Remove the sequencer subtitle `Pattern 01 · single track · 40 ms grid`. Preserve the heading and playback actions.
 
 ## 3. Envelope node editor
 
@@ -154,4 +154,4 @@ No firmware changes or new runtime dependency are required. Presets render into 
 
 The draft proposes direct library authoring in the existing inspector, growth beyond the five initial empty slots, explicit Save, and independent copies on placement. These are design defaults for review, not behavior inferred from existing code.
 
-Item 3 is the only unresolved element target: confirm the subtitle removal or identify the intended element before implementation.
+Item 3 is resolved: the user confirmed subtitle removal. The full spec remains a draft awaiting review before implementation.
