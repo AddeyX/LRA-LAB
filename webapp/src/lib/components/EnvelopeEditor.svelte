@@ -149,10 +149,10 @@
 
 <div class="envelope-editor">
   <div class="envelope-toolbar">
-    <span class="group-label">AMPLITUDE ENVELOPE</span>
+    <span class="envelope-title">Envelope</span>
     <div class="node-actions">
-      <button onclick={add} disabled={!insertion}>+ Add point</button>
-      <button onclick={remove} disabled={!canRemove}>Remove point</button>
+      <button onclick={add} disabled={!insertion}>Add point</button>
+      <button onclick={remove} disabled={!canRemove}>Remove</button>
     </div>
   </div>
   <div class="envelope-surface">
@@ -200,39 +200,52 @@
 <style lang="postcss">
   @reference "../../app.css";
   .envelope-editor {
-    @apply mx-6 mt-6;
+    @apply mt-6;
   }
   .envelope-toolbar {
     @apply flex flex-wrap items-center justify-between gap-3 mb-3;
   }
+  .envelope-title {
+    @apply text-muted text-size-13;
+    letter-spacing: 0.03em;
+  }
   .node-actions {
-    @apply flex flex-wrap gap-2;
+    @apply flex flex-wrap gap-1.5;
   }
   .node-actions button {
-    @apply bg-transparent text-ink rounded-control px-3 py-2 text-size-11;
-    border: calc(var(--spacing) * 0.25) solid var(--color-control-line);
+    @apply border-0 bg-surface-raised text-ink px-3.5 py-2 text-size-13;
+    border-radius: calc(var(--spacing) * 2.5);
   }
   .node-actions button:hover:enabled {
-    @apply bg-control border-accent;
+    transform: none;
+    @apply bg-action text-action-ink;
   }
   .envelope-surface {
     @apply bg-surface-raised p-5;
+    border-radius: calc(var(--spacing) * 4.5);
   }
   .envelope-plot {
     @apply relative h-40;
-    background: repeating-linear-gradient(
-      to right,
-      var(--color-control) 0 calc(var(--spacing) * 0.25),
-      transparent calc(var(--spacing) * 0.25) 20%
-    );
+    background:
+      repeating-linear-gradient(
+        to right,
+        var(--color-line) 0 calc(var(--spacing) * 0.25),
+        transparent calc(var(--spacing) * 0.25) 20%
+      ),
+      linear-gradient(
+        to top,
+        var(--color-line) 0 calc(var(--spacing) * 0.25),
+        transparent calc(var(--spacing) * 0.25)
+      );
   }
   svg {
     @apply absolute inset-0 w-full h-full overflow-visible pointer-events-none;
   }
   polyline {
     fill: none;
-    stroke: var(--color-accent-bright);
+    stroke: var(--color-ink);
     stroke-width: 2;
+    stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
   }
   .envelope-node {
@@ -252,23 +265,24 @@
     background: transparent;
   }
   .envelope-node span {
-    @apply block size-3 rounded-full bg-accent-bright;
+    @apply block size-3.5 rounded-full bg-accent;
     border: calc(var(--spacing) * 0.5) solid var(--color-surface-raised);
+    box-shadow: 0 0 0 calc(var(--spacing) * 0.25) var(--color-ink);
   }
   .envelope-node.active span {
-    @apply bg-ink size-4;
+    @apply bg-butter size-4.5;
   }
   .envelope-node:focus-visible {
     outline: var(--outline-width-focus) solid var(--color-accent-bright);
     outline-offset: 0;
   }
   .envelope-readout {
-    @apply flex flex-wrap items-center justify-between gap-2 mt-3 text-muted text-size-11 tabular-nums;
+    @apply flex flex-wrap items-center justify-between gap-2 mt-3 text-muted text-size-12 tabular-nums;
   }
   .envelope-readout strong {
     @apply font-medium text-ink;
   }
   .envelope-readout strong span {
-    @apply text-muted ms-2;
+    @apply text-muted ms-2 font-normal;
   }
 </style>

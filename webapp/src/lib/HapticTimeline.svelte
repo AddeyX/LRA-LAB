@@ -154,9 +154,7 @@
 </script>
 
 <div class="sequencer-toolbar flex-wrap">
-  <span class="snap-label"
-    ><span aria-hidden="true">▦</span> SNAP <strong>40 ms</strong></span
-  >
+  <span class="snap-label">Snap <strong>40 ms</strong></span>
   <span class="timeline-hint">Click to place · drag to move</span>
   <div class="zoom-control">
     <ScrubField
@@ -169,7 +167,7 @@
       step={5}
       size="sm"
       accent="var(--color-accent-bright)"
-      chipColor="var(--color-canvas)"
+      chipColor="var(--color-surface-raised)"
       showFill={false}
       onChange={(value) => (zoom = value)}
     />
@@ -227,8 +225,8 @@
           ></button>
         {/each}
         {#if blocks.length === 0}<div class="lane-empty">
-            <strong>Your first beat starts here.</strong><span
-              >Choose a haptic. Click any 40 ms cell to place it.</span
+            <strong>Place your first beat</strong><span
+              >Pick from the library, then click a cell.</span
             >
           </div>{/if}
         {#each blocks as block (block.id)}
@@ -306,71 +304,67 @@
   @reference "../app.css";
 
   .sequencer-toolbar {
-    @apply flex items-center gap-4;
-    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 6);
-    @apply text-size-10;
+    @apply flex items-center gap-3;
+    padding: 0 0 calc(var(--spacing) * 3);
+    @apply text-size-13;
   }
   .snap-label {
-    @apply flex items-center gap-2 text-muted tracking-snap whitespace-nowrap;
-  }
-  .snap-label > span {
-    @apply text-accent-bright text-size-18;
+    @apply flex items-center gap-2 text-muted whitespace-nowrap;
+    letter-spacing: 0.03em;
   }
   .snap-label strong {
-    @apply text-accent-bright;
-    letter-spacing: 0;
-    @apply bg-surface-soft;
-    padding: calc(var(--spacing) * 1) calc(var(--spacing) * 1.75);
-    @apply rounded-badge;
+    @apply font-normal text-ink bg-surface-raised;
+    padding: calc(var(--spacing) * 1) calc(var(--spacing) * 2.5);
+    @apply rounded-pill;
   }
   .timeline-hint {
     @apply text-muted;
+    letter-spacing: 0.03em;
   }
   .zoom-control {
-    @apply ms-auto flex gap-2 items-center text-muted text-size-9 tracking-detail;
+    @apply ms-auto flex gap-2 items-center text-muted;
   }
   .sequencer-body {
-    @apply grid grid-cols-1 min-w-0 mx-6 rounded-none overflow-hidden;
+    @apply grid grid-cols-1 min-w-0 overflow-hidden bg-surface-raised;
+    border-radius: calc(var(--spacing) * 4.5);
   }
   .sequencer-viewport {
     @apply overflow-x-auto min-w-0 max-w-full;
-    scrollbar-color: var(--color-line) var(--color-canvas);
+    scrollbar-color: var(--color-control-hover) transparent;
     scrollbar-width: thin;
   }
   .sequencer-canvas {
     @apply relative;
   }
   .step-ruler {
-    @apply h-ruler bg-surface relative;
-    border-bottom: calc(var(--spacing) * 0.25) solid var(--color-line);
+    @apply h-ruler relative bg-surface-raised;
   }
   .step-ruler > span {
-    @apply absolute top-4 h-6.5 ps-1.25;
+    @apply absolute top-4 h-6.5 ps-1.5;
     border-left: calc(var(--spacing) * 0.25) solid var(--color-line);
-    @apply text-size-10 text-muted tabular-nums;
+    @apply text-size-11 text-subtle tabular-nums;
   }
   .step-ruler > span.major {
-    @apply text-ink border-subtle font-bold;
+    @apply text-ink border-ink;
   }
   .step-ruler small {
-    @apply text-size-8 ps-0.5;
+    @apply text-size-9 ps-0.5;
   }
   .beat-lane {
     @apply h-lane relative overflow-hidden;
     background:
       repeating-linear-gradient(
         to right,
-        color-mix(in srgb, var(--color-accent-bright) 18%, transparent) 0
-          calc(var(--spacing) * 0.25),
+        var(--color-control-line) 0 calc(var(--spacing) * 0.25),
         transparent calc(var(--spacing) * 0.25) calc(var(--cell) * 5)
       ),
       repeating-linear-gradient(
         to right,
-        color-mix(in srgb, var(--color-line) 65%, transparent) 0
+        color-mix(in srgb, var(--color-line) 70%, transparent) 0
           calc(var(--spacing) * 0.25),
         transparent calc(var(--spacing) * 0.25) var(--cell)
       ),
-      var(--color-surface-raised);
+      var(--color-panel-raised);
   }
   .grid-cell {
     @apply absolute;
@@ -383,31 +377,28 @@
   }
   .grid-cell:hover,
   .grid-cell:focus-visible {
-    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 22%, transparent);
     transform: none;
   }
   .lane-empty {
-    @apply absolute top-18;
-    left: calc(var(--spacing) * 8);
-    @apply flex flex-col gap-2 pointer-events-none text-muted text-size-12;
+    @apply absolute inset-0 flex flex-col items-center justify-center gap-1.5 pointer-events-none text-muted text-size-13;
   }
   .lane-empty strong {
-    @apply text-ink text-size-14 font-medium;
+    @apply text-ink text-size-16 font-medium;
   }
   .beat-wrapper {
     @apply absolute top-10.5 h-beat;
     z-index: 2;
-    @apply rounded-beat bg-accent;
-    border: calc(var(--spacing) * 0.25) solid var(--color-accent-bright);
-    @apply text-ink;
-    box-shadow: var(--shadow-beat);
+    @apply bg-accent text-ink;
+    border-radius: calc(var(--spacing) * 3);
+    transition: box-shadow 0.25s var(--ease-butter);
   }
   .beat-wrapper.custom {
-    @apply bg-accent-deep border-accent text-ink;
+    @apply bg-butter;
   }
   .beat-wrapper.selected {
     outline: calc(var(--spacing) * 0.5) solid var(--color-ink);
-    @apply outline-offset-[var(--outline-width-focus)];
+    outline-offset: calc(var(--spacing) * 0.5);
     z-index: 3;
   }
   .beat-wrapper.dragging {
@@ -415,7 +406,7 @@
   }
   .beat {
     @apply flex flex-col w-full h-full;
-    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 1.25);
+    padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 2);
     @apply gap-1.25;
     border: none;
     background: transparent;
@@ -423,63 +414,64 @@
     @apply overflow-hidden text-start cursor-grab;
     touch-action: none;
     transition: none;
-    @apply rounded-badge;
+    border-radius: inherit;
   }
   .beat:hover:enabled,
   .beat:active:enabled {
     transform: none;
-    background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 7%, transparent);
   }
   .beat:active {
     @apply cursor-grabbing;
   }
   .beat-name {
-    @apply text-size-10 font-bold whitespace-nowrap max-w-full overflow-hidden text-ellipsis;
+    @apply text-size-11 font-medium whitespace-nowrap max-w-full overflow-hidden text-ellipsis;
   }
   .beat svg {
     @apply w-full h-10.75 shrink-0;
     margin-block: auto;
-    opacity: 0.75;
   }
   .beat polyline {
     fill: none;
     stroke: currentColor;
-    stroke-width: 2;
+    stroke-width: 1.8;
+    stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
   }
   .beat-duration {
-    @apply text-size-9 whitespace-nowrap;
-    opacity: 1;
-    @apply tabular-nums;
+    @apply text-size-10 whitespace-nowrap tabular-nums;
+    opacity: 0.7;
   }
   .resize-handle {
     @apply absolute;
     right: 0;
     @apply top-0 h-full w-3 p-0;
-    background: color-mix(in srgb, var(--color-canvas) 18%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 8%, transparent);
     border: 0;
     color: inherit;
     @apply cursor-ew-resize;
     touch-action: none;
-    border-radius: 0 var(--radius-badge) var(--radius-badge) 0;
+    border-radius: 0 calc(var(--spacing) * 3) calc(var(--spacing) * 3) 0;
     transition: none;
   }
   .resize-handle:hover:enabled {
-    background: color-mix(in srgb, var(--color-canvas) 30%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 16%, transparent);
     transform: none;
   }
   .beat-ghost {
     @apply absolute top-10 h-ghost;
-    border: calc(var(--spacing) * 0.5) dashed var(--color-accent-bright);
-    background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+    border: calc(var(--spacing) * 0.5) dashed
+      color-mix(in srgb, var(--color-ink) 45%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
     @apply text-ink;
     z-index: 4;
     @apply pointer-events-none;
-    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 1);
-    @apply flex flex-col gap-2 overflow-hidden rounded-xs whitespace-nowrap text-size-11;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 1.5);
+    border-radius: calc(var(--spacing) * 3);
+    @apply flex flex-col gap-2 overflow-hidden whitespace-nowrap text-size-11;
   }
   .beat-ghost small {
-    @apply text-size-9;
+    @apply text-size-10 text-muted;
   }
   .beat-ghost.invalid {
     @apply border-danger bg-danger-surface text-danger-ink;

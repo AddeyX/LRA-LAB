@@ -197,3 +197,136 @@
     </section>
   </div>
 </div>
+
+<style>
+  .setup-view {
+    padding-inline: max(
+      var(--spacing-page-gutter),
+      calc((100% - var(--spacing-content)) / 2)
+    );
+  }
+  .setup-heading {
+    min-height: 0;
+    padding: 24px 0 36px;
+  }
+  .setup-heading h1 {
+    font: 400 clamp(48px, 7vw, 96px) / 0.95 var(--font-sans);
+    letter-spacing: -0.035em;
+  }
+  .setup-heading h1 em {
+    color: var(--color-ink);
+    background: linear-gradient(
+      to top,
+      var(--color-butter) 0 0.22em,
+      transparent 0.22em
+    );
+  }
+  .setup-heading .kicker {
+    color: var(--color-muted);
+    font: 400 13px/24px var(--font-sans);
+    letter-spacing: 0.03em;
+  }
+  .setup-heading .hero-copy {
+    margin-top: 16px;
+    color: var(--color-muted);
+  }
+  .setup-exit {
+    border: 0;
+    border-radius: 10px;
+    background: var(--color-surface);
+  }
+  .setup-exit:hover {
+    transform: none;
+    background: var(--color-surface-soft);
+  }
+  .setup-layout {
+    gap: 12px;
+  }
+  .setup-steps {
+    gap: 2px;
+    padding: 12px;
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    align-self: start;
+  }
+  .setup-steps button {
+    border: 0;
+    border-radius: 14px;
+    color: var(--color-muted);
+  }
+  .setup-steps button:hover:enabled {
+    transform: none;
+    color: var(--color-ink);
+  }
+  .setup-steps button span {
+    font: 400 12px var(--font-sans);
+    color: var(--color-subtle);
+  }
+  .setup-steps button.current {
+    background: var(--color-surface-raised);
+    color: var(--color-ink);
+  }
+  .setup-steps button.current span {
+    color: var(--color-ink);
+  }
+  .setup-steps button.completed {
+    color: var(--color-ink);
+  }
+  .setup-steps button.completed span {
+    color: var(--color-success);
+  }
+  .setup-panel {
+    border: 0;
+    border-radius: var(--radius-card);
+    box-shadow: none;
+  }
+  .setup-progress {
+    font: 400 13px var(--font-sans);
+    letter-spacing: 0.03em;
+    color: var(--color-muted);
+  }
+  .setup-progress > div {
+    border-radius: 2px;
+    background: var(--color-control-hover);
+  }
+  .setup-progress i {
+    background: var(--color-ink);
+  }
+  .setup-panel h2 {
+    font: 500 clamp(30px, 3vw, 44px) / 1.1 var(--font-sans);
+    letter-spacing: -0.025em;
+  }
+  .setup-panel code {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .setup-note,
+  .setup-command {
+    border: 0;
+    border-radius: 16px;
+    background: var(--color-surface-raised);
+  }
+  .setup-nav button {
+    border: 0;
+    border-radius: 10px;
+    background: var(--color-surface-raised);
+  }
+  .setup-nav button:hover:enabled {
+    transform: none;
+  }
+  .setup-nav .setup-next {
+    background: var(--color-action);
+    color: var(--color-action-ink);
+    font-weight: 400;
+  }
+  .setup-nav .setup-next:hover:enabled {
+    background: var(--color-accent);
+    color: var(--color-ink);
+  }
+  @media (max-width: 47.5rem) {
+    .setup-steps {
+      padding: 8px;
+      margin-inline: 0;
+    }
+  }
+</style>

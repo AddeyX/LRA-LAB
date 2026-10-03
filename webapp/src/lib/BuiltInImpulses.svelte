@@ -234,10 +234,11 @@
 
   .impulse-legend,
   .impulse-grid {
-    @apply grid grid-cols-4 gap-1.5;
+    @apply grid grid-cols-4 gap-2;
   }
   .impulse-legend {
-    @apply mb-2 text-muted text-size-10 font-semibold text-center;
+    @apply mb-2.5 text-muted text-size-12 text-center;
+    letter-spacing: 0.03em;
   }
   .impulse-grid {
     grid-auto-rows: var(--spacing-rail);
@@ -245,11 +246,15 @@
   .impulse-pad {
     @apply relative isolate overflow-hidden min-w-0;
     padding: calc(var(--spacing) * 1.25) calc(var(--spacing) * 0.5);
-    border: calc(var(--spacing) * 0.25) solid var(--color-line);
-    @apply rounded-field bg-surface-raised text-ink;
+    border: 0;
+    border-radius: calc(var(--spacing) * 3.5);
+    @apply bg-surface-raised text-ink;
     transition:
-      border-color 150ms ease,
-      background 150ms ease;
+      box-shadow 0.3s var(--ease-butter),
+      background-color 0.3s var(--ease-butter);
+  }
+  .impulse-pad:hover:enabled {
+    transform: none;
   }
   .impulse-fill {
     @apply absolute;
@@ -258,57 +263,73 @@
     z-index: -1;
     background: color-mix(
       in srgb,
-      var(--color-accent) 24%,
+      var(--color-accent) 28%,
       var(--color-surface-raised)
     );
-    border-top: calc(var(--spacing) * 0.25) solid
-      color-mix(in srgb, var(--color-accent-bright) 35%, transparent);
+    transition: background-color 0.3s var(--ease-butter);
   }
   .impulse-content {
-    @apply h-full flex flex-col items-center justify-center gap-0.75;
+    @apply h-full flex flex-col items-center justify-center gap-1;
   }
   .impulse-content svg {
-    @apply text-accent-bright flex-none;
+    @apply flex-none;
   }
   .impulse-content strong {
-    @apply text-size-11;
+    @apply text-size-12 font-medium;
     line-height: 1;
     @apply tabular-nums;
   }
   .impulse-content small {
-    @apply text-muted text-size-9;
+    @apply text-muted text-size-10;
     line-height: 1;
     @apply whitespace-nowrap;
   }
-  .impulse-pad:hover {
-    @apply border-accent bg-surface-soft;
+  .impulse-pad:hover .impulse-fill {
+    background: color-mix(
+      in srgb,
+      var(--color-accent) 55%,
+      var(--color-surface-raised)
+    );
   }
   .impulse-pad.selected {
-    @apply border-accent-bright;
-    box-shadow: var(--shadow-selected);
+    box-shadow: inset 0 0 0 calc(var(--spacing) * 0.5) var(--color-ink);
+  }
+  .impulse-pad.selected .impulse-fill {
+    @apply bg-accent;
   }
   .impulse-pad:focus-visible {
     outline: calc(var(--spacing) * 0.5) solid var(--color-accent-bright);
     @apply outline-offset-[var(--outline-width-focus)];
   }
   .impulse-empty {
-    border: calc(var(--spacing) * 0.25) dashed var(--color-line);
-    @apply rounded-field flex items-center justify-center bg-transparent text-muted;
+    border: calc(var(--spacing) * 0.375) dashed var(--color-control-line);
+    border-radius: calc(var(--spacing) * 3.5);
+    @apply flex items-center justify-center bg-transparent text-subtle;
   }
   .impulse-empty svg {
     @apply size-5;
   }
-  .impulse-empty:hover {
-    @apply text-accent-bright border-accent bg-surface-soft;
+  .impulse-empty:hover:enabled {
+    transform: none;
+    @apply text-ink border-ink bg-butter;
+    border-style: solid;
   }
   .preset-tile {
     @apply relative min-w-0;
   }
   .saved-pulse {
     @apply size-full flex flex-col justify-center items-center gap-1 px-1;
+    background: color-mix(
+      in srgb,
+      var(--color-butter) 45%,
+      var(--color-surface-raised)
+    );
+  }
+  .saved-pulse.selected {
+    @apply bg-butter;
   }
   .saved-pulse > svg {
-    @apply w-full h-4 text-accent-bright;
+    @apply w-full h-4 text-ink;
   }
   .saved-pulse polyline {
     fill: none;
@@ -317,10 +338,10 @@
     vector-effect: non-scaling-stroke;
   }
   .saved-pulse strong {
-    @apply max-w-full truncate text-size-10;
+    @apply max-w-full truncate text-size-11 font-medium;
   }
   .saved-pulse small {
-    @apply text-muted text-size-8 whitespace-nowrap;
+    @apply text-butter-ink text-size-9 whitespace-nowrap;
   }
   .preset-menu {
     @apply absolute -top-1 -end-1;
@@ -330,8 +351,11 @@
     z-index: 6;
   }
   .preset-trigger {
-    @apply size-6 flex items-center justify-center p-0 rounded-full bg-control text-ink cursor-pointer;
+    @apply size-6 flex items-center justify-center p-0 rounded-full bg-action text-action-ink cursor-pointer;
     border: 0;
+  }
+  .preset-trigger:hover:enabled {
+    transform: none;
   }
   .preset-trigger svg {
     @apply size-4 fill-current pointer-events-none;
@@ -340,17 +364,22 @@
     outline: var(--outline-width-focus) solid var(--color-accent-bright);
   }
   .preset-menu > div {
-    @apply absolute end-0 mt-1 bg-control rounded-field p-1 min-w-20;
+    @apply absolute end-0 mt-1 bg-surface-raised p-1 min-w-24;
+    border-radius: calc(var(--spacing) * 3);
+    box-shadow: 0 8px 28px rgb(0 0 0 / 0.12);
   }
   .preset-menu > div button {
-    @apply block w-full border-0 bg-transparent text-ink text-start text-size-11 px-2 py-2 rounded-xs;
+    @apply block w-full border-0 bg-transparent text-ink text-start text-size-13 px-2.5 py-2;
+    border-radius: calc(var(--spacing) * 2);
   }
   .preset-menu > div button:hover {
-    @apply bg-control-hover;
+    transform: none;
+    @apply bg-surface;
   }
   .impulse-hint {
-    margin: calc(var(--spacing) * 2.25) 0 0;
-    @apply text-muted text-size-10 text-center;
+    margin: calc(var(--spacing) * 2.5) 0 0;
+    @apply text-muted text-size-12 text-center;
+    letter-spacing: 0.03em;
   }
   @media (prefers-reduced-motion: reduce) {
     .impulse-pad {

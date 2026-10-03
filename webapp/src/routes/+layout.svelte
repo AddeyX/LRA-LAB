@@ -1,43 +1,44 @@
 <script lang="ts">
   import { browser, dev } from "$app/environment";
   import { Agentation } from "sv-agentation";
-  import DarkVeil from "$lib/components/DarkVeil.svelte";
   import "../app.css";
   let { children } = $props();
 </script>
 
-<div class="site-frame relative isolate min-h-svh">
-  <div class="app-background" aria-hidden="true">
-    <div class="veil">
-      <DarkVeil blueTint speed={0.25} resolutionScale={0.75} />
-    </div>
-  </div>
-
-  <div class="app-shell">
-    <aside class="rail">
-      <div class="brand-mark">H<span>·</span></div>
-      <div class="rail-word">STUDIO / 01</div>
-      <div class="rail-bottom">LRA<br />LAB</div>
-    </aside>
-    <div class="layout-body flex min-w-0 min-h-svh flex-col">
-      <div class="layout-page min-w-0 flex-1">{@render children()}</div>
-      <div
-        class="layout-footer mx-auto w-full max-w-content px-page-gutter max-studio:px-page-gutter-mobile"
-      >
-        <footer>
-          <span>LRA LAB</span><span>AddeyX</span><span>LOCAL BY DESIGN</span>
-        </footer>
-      </div>
-    </div>
-  </div>
+<div class="lab-frame">
+  <div class="lab-page">{@render children()}</div>
+  <footer class="lab-footer">
+    <span>LRA Lab</span><span>Local by design</span>
+  </footer>
 </div>
-
-<style>
-  :global(html) {
-    overscroll-behavior: none;
-  }
-</style>
 
 {#if dev && browser}
   <Agentation workspaceRoot={import.meta.env.VITE_WORKSPACE_ROOT ?? "."} />
 {/if}
+
+<style>
+  :global(html) {
+    color-scheme: light;
+    overscroll-behavior: none;
+  }
+  .lab-frame {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+    background: var(--color-canvas);
+  }
+  .lab-page {
+    flex: 1;
+    min-width: 0;
+  }
+  .lab-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 32px
+      max(var(--spacing-page-gutter), calc((100% - var(--spacing-content)) / 2));
+    color: var(--color-subtle);
+    font: 400 13px/24px var(--font-sans);
+    letter-spacing: 0.03em;
+  }
+</style>
