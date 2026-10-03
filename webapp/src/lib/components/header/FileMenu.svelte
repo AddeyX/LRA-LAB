@@ -29,6 +29,8 @@
       hint: dirty ? "Unsaved changes" : "Saved",
     },
     { action: "export", label: "Export", hint: "Download JSON" },
+    { action: "code", label: "Generate code", hint: "Signature C++" },
+    { action: "settings", label: "LRA settings", hint: "Hardware profile" },
   ]);
 </script>
 
@@ -50,6 +52,10 @@
       <path d="M12 4v10m-4-4 4 4 4-4M5 19h14" />
     {:else if kind === "save"}
       <path d="m6 12 4 4 8-8" />
+    {:else if kind === "code"}
+      <path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16" />
+    {:else if kind === "settings"}
+      <path d="M4 7h6m4 0h6M4 17h10m4 0h2M10 4v6m4 4v6" />
     {:else}
       <path d="M12 15V5m-4 4 4-4 4 4M5 19h14" />
     {/if}
@@ -97,33 +103,21 @@
                     >
                   </DropdownMenu.Item>
                 {/each}
+              </div>
+              <div class="file-foot">
                 <DropdownMenu.Item textValue="GitHub repository">
                   {#snippet child({ props })}
-                    <a {...props} class="file-row"
+                    <a {...props} class="file-cap"
                       href="https://github.com/AddeyX/LRA-LAB"
                       target="_blank" rel="noopener noreferrer">
-                      <span class="file-tile">{@render glyph("export")}</span>
-                      <span class="file-label"><RollText text="GitHub" /></span>
-                      <span class="file-hint">Repository ↗</span>
+                      <RollText text="GitHub" />
                     </a>
                   {/snippet}
                 </DropdownMenu.Item>
-                <DropdownMenu.Item class="file-row" onSelect={() => onaction("changelog")}>
-                  <span class="file-tile">{@render glyph("open")}</span>
-                  <span class="file-label"><RollText text="Changelog" /></span>
-                  <span class="file-hint">Build history</span>
-                </DropdownMenu.Item>
-              </div>
-              <div class="file-foot">
                 <DropdownMenu.Item
                   class="file-cap"
-                  onSelect={() => onaction("code")}
-                  ><RollText text="Generate code" /></DropdownMenu.Item
-                >
-                <DropdownMenu.Item
-                  class="file-cap"
-                  onSelect={() => onaction("settings")}
-                  ><RollText text="LRA settings" /></DropdownMenu.Item
+                  onSelect={() => onaction("changelog")}
+                  ><RollText text="Changelog" /></DropdownMenu.Item
                 >
               </div>
             </div>
