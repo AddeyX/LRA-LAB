@@ -32,9 +32,7 @@
   let failure = $state("");
   let discardDialog = $state(false);
   let pending: (() => void) | null = null;
-  let libraryNotice = $state("");
   function report(message: string) {
-    libraryNotice = message;
     onnotice(message);
   }
 
@@ -141,9 +139,6 @@
   onedit={edit}
   onremove={remove}
 />
-{#if libraryNotice}<p class="library-notice" role="status">
-    {libraryNotice}
-  </p>{/if}
 <Dialog
   bind:open={discardDialog}
   title="Discard pulse edits?"
@@ -171,11 +166,3 @@
     </div>
   </div>
 </Dialog>
-
-<style lang="postcss">
-  @reference "../../app.css";
-  .library-notice {
-    @apply mt-3 mb-0 text-muted text-size-11;
-    line-height: 1.5;
-  }
-</style>

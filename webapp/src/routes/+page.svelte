@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import SetupView from "$lib/SetupView.svelte";
   import PulseLibrary from "$lib/components/PulseLibrary.svelte";
   import type { FileAction } from "$lib/components/header/FileMenu.svelte";
@@ -50,6 +50,15 @@
   let busy = $state(false);
   let notice = $state("Connect board to preview. Editor works offline.");
   let error = $state("");
+  let libraryToast = $state("");
+  let libraryToastTimeout: ReturnType<typeof setTimeout>;
+  function showLibraryNotice(message: string) {
+    notice = message;
+    libraryToast = message;
+    clearTimeout(libraryToastTimeout);
+    libraryToastTimeout = setTimeout(() => (libraryToast = ""), 4000);
+  }
+  onDestroy(() => clearTimeout(libraryToastTimeout));
   let view = $state<"studio" | "setup">("studio");
   let calibrating = $state(false);
   let saveDialog = $state(false);
@@ -565,12 +574,20 @@
           selectedId={brushKind}
           onselect={(id) => (brushKind = id)}
           ondragstart={dragEffect}
-          onnotice={(message) => (notice = message)}
+          onnotice={showLibraryNotice}
         />
       </LibraryCard>
     </div>
   {/if}
-  {#if error}<ErrorToast message={error} ondismiss={() => (error = "")} />{/if}
+  {#if error}
+    <ErrorToast message={error} ondismiss={() => (error = "")} />
+  {:else if libraryToast}
+    <ErrorToast
+      message={libraryToast}
+      tone="notice"
+      ondismiss={() => (libraryToast = "")}
+    />
+  {/if}
 </main>
 
 <NewSignatureDialog
@@ -630,7 +647,10 @@
     display: grid;
     grid-template-columns:
       minmax(0, 1fr)
-      minmax(var(--spacing-library-min), var(--spacing-library));
+      minmax(
+        calc(var(--spacing-library-min) * 0.85),
+        calc(var(--spacing-library) * 0.85)
+      );
     grid-template-rows: auto 1fr;
     grid-template-areas:
       "sequence library"

@@ -5,7 +5,6 @@
   let {
     area,
     title,
-    meta,
     stack = false,
     actions,
     children,
@@ -13,7 +12,6 @@
   }: {
     area: string;
     title?: string;
-    meta?: string;
     stack?: boolean;
     actions?: Snippet;
     children: Snippet;
@@ -31,9 +29,7 @@
   {#if title}
     <div class="card-head">
       <h2 id={titleId}>{title}</h2>
-      {#if actions}{@render actions()}{:else if meta}<span class="card-meta"
-          >{meta}</span
-        >{/if}
+      {#if actions}{@render actions()}{/if}
     </div>
   {/if}
   {@render children()}
@@ -63,11 +59,6 @@
     margin: 0;
     font: 500 18px/1.2 var(--font-sans);
     letter-spacing: 0.005em;
-  }
-  .card-meta {
-    color: var(--color-muted);
-    font-size: 13px;
-    letter-spacing: 0.03em;
   }
   @media (max-width: 45rem) {
     .card {

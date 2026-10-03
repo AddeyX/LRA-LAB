@@ -15,7 +15,7 @@
   } = $props();
 </script>
 
-<Card area="library" title="Library" meta="Pick, then place" stack>
+<Card area="library" title="Library" stack>
   <div class="library-body">{@render children()}</div>
   <button
     class="custom-pulse"

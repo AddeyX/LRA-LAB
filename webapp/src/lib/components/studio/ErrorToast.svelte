@@ -1,11 +1,26 @@
 <script lang="ts">
-  let { message, ondismiss }: { message: string; ondismiss: () => void } =
-    $props();
+  let {
+    message,
+    ondismiss,
+    tone = "error",
+  }: {
+    message: string;
+    ondismiss: () => void;
+    tone?: "error" | "notice";
+  } = $props();
 </script>
 
-<div class="toast" role="alert">
+<div
+  class="toast"
+  class:notice={tone === "notice"}
+  role={tone === "error" ? "alert" : "status"}
+>
   <span>{message}</span>
-  <button onclick={ondismiss} aria-label="Dismiss error">×</button>
+  <button
+    onclick={ondismiss}
+    aria-label={tone === "error" ? "Dismiss error" : "Dismiss notification"}
+    >×</button
+  >
 </div>
 
 <style>
@@ -38,6 +53,9 @@
     border-radius: 50%;
     background: var(--color-danger);
     vertical-align: middle;
+  }
+  .toast.notice span::before {
+    background: var(--color-accent);
   }
   .toast button {
     width: 32px;

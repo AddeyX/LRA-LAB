@@ -227,7 +227,6 @@
     {/if}
   {/each}
 </div>
-<p class="impulse-hint">Fill shows amplitude</p>
 
 <style lang="postcss">
   @reference "../app.css";
@@ -375,11 +374,6 @@
   .preset-menu > div button:hover {
     transform: none;
     @apply bg-surface;
-  }
-  .impulse-hint {
-    margin: calc(var(--spacing) * 2.5) 0 0;
-    @apply text-muted text-size-12 text-center;
-    letter-spacing: 0.03em;
   }
   @media (prefers-reduced-motion: reduce) {
     .impulse-pad {

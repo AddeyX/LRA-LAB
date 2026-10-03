@@ -375,7 +375,10 @@
     @apply p-0 cursor-crosshair;
     transition: none;
   }
-  .grid-cell:hover,
+  .grid-cell:hover {
+    background: transparent;
+    transform: none;
+  }
   .grid-cell:focus-visible {
     background: color-mix(in srgb, var(--color-accent) 22%, transparent);
     transform: none;

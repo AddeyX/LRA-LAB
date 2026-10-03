@@ -34,6 +34,7 @@
 
 <style>
   .seq-meter {
+    position: relative;
     display: grid;
     justify-items: center;
     gap: 6px;
@@ -83,19 +84,25 @@
     transition: transform 0.5s var(--ease-butter);
   }
   .seq-meter-more {
-    display: block;
-    max-height: 0;
-    overflow: hidden;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    z-index: 20;
+    width: max-content;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--color-surface-raised);
+    transform: translateX(-50%);
+    pointer-events: none;
+    visibility: hidden;
     font-size: 12px;
     letter-spacing: 0.03em;
     color: var(--color-muted);
     opacity: 0;
-    transition:
-      max-height 0.45s var(--ease-butter),
-      opacity 0.3s ease;
+    transition: opacity 0.3s ease;
   }
   .seq-meter.expanded .seq-meter-more {
-    max-height: 20px;
+    visibility: visible;
     opacity: 1;
   }
   .seq-meter.expanded .seq-meter-line > span {
