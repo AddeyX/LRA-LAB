@@ -1,6 +1,6 @@
 # Pulse editing and reusable library presets
 
-Status: draft for user review. No feature implementation is authorized by this document alone.
+Status: approved by the user on 2026-10-02; implementation authorized.
 
 ## Intent and constraints
 
@@ -152,6 +152,6 @@ No firmware changes or new runtime dependency are required. Presets render into 
 
 ## Review decisions
 
-The draft proposes direct library authoring in the existing inspector, growth beyond the five initial empty slots, explicit Save, and independent copies on placement. These are design defaults for review, not behavior inferred from existing code.
+The approved design uses direct library authoring in the existing inspector, growth beyond the five initial empty slots, explicit Save, and independent copies on placement.
 
-Item 3 is resolved: the user confirmed subtitle removal. The full spec remains a draft awaiting review before implementation.
+Item 3 is resolved: the user confirmed subtitle removal.

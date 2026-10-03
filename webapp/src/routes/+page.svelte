@@ -3,7 +3,15 @@
   import { Badge, Button, Dialog, Popover } from "portal-bits";
   import SetupView from "$lib/SetupView.svelte";
   import HapticTimeline from "$lib/HapticTimeline.svelte";
-  import BuiltInImpulses from "$lib/BuiltInImpulses.svelte";
+  import PulseLibrary from "$lib/components/PulseLibrary.svelte";
+  import PulsePresetInspector from "$lib/components/PulsePresetInspector.svelte";
+  import EnvelopeEditor from "$lib/components/EnvelopeEditor.svelte";
+  import {
+    clonePulse,
+    defaultPulse,
+    type BrushKind,
+    type PulsePreset,
+  } from "$lib/pulse-library";
   import ScrubField from "$lib/components/ScrubField.svelte";
   import { GRID_MS, editTimeline, resizePulse, snapTime } from "$lib/timeline";
   import {
@@ -63,6 +71,9 @@
   } | null = null;
   let fileInput: HTMLInputElement;
   let serial: StudioSerial | null = null;
+  let pulseLibrary = $state<ReturnType<typeof PulseLibrary>>();
+  let libraryDraft = $state<PulsePreset | null>(null);
+  let presets = $state<PulsePreset[]>([]);
   let dirty = $derived(JSON.stringify(signature) !== savedSnapshot);
   let selected = $derived(
     signature.blocks.find((block) => block.id === selectedId),
@@ -74,13 +85,21 @@
       : "Add effect or pulse to begin.",
   );
   let code = $derived.by(() => (validation ? "" : exportCpp(signature)));
-  let brushKind = $state<number | "pulse">(1);
+  let brushKind = $state<BrushKind>(1);
   let brush = $derived(makeBeat(brushKind, 0, "placement-brush"));
   const newId = () => crypto.randomUUID();
   const label = (block: Block) =>
     block.type === "effect"
       ? `${effectById(block.effectId)?.name} · ${effectById(block.effectId)?.strength}`
       : "Custom pulse";
+  function leaveLibrary(action: () => void): boolean {
+    if (pulseLibrary) return pulseLibrary.leave(action);
+    action();
+    return true;
+  }
+  function selectBeat(id: string) {
+    return leaveLibrary(() => (selectedId = id));
+  }
   const persist = () => {
     try {
       localStorage.setItem("haptic-studio-draft-v1", JSON.stringify(signature));
@@ -253,30 +272,22 @@
     if (focus) selectedId = focus;
     persist();
   }
-  function makeBeat(
-    kind: number | "pulse",
-    startMs: number,
-    id: string,
-  ): Block {
-    return kind === "pulse"
-      ? {
-          id,
-          type: "pulse",
-          startMs,
-          durationMs: 320,
-          keyframes: [
-            { timeMs: 0, amplitudePercent: 0 },
-            { timeMs: 80, amplitudePercent: 75 },
-            { timeMs: 320, amplitudePercent: 0 },
-          ],
-        }
-      : { id, type: "effect", startMs, effectId: kind };
+  function makeBeat(kind: BrushKind, startMs: number, id: string): Block {
+    if (typeof kind === "number")
+      return { id, type: "effect", startMs, effectId: kind };
+    const preset = kind.startsWith("preset:")
+      ? presets.find((p) => p.id === kind.slice(7))
+      : undefined;
+    return clonePulse(preset ?? defaultPulse(), id, startMs);
   }
-  function placeBeat(startMs: number, kind: number | "pulse" = brushKind) {
-    const block = makeBeat(kind, startMs, newId());
-    updateBlock(block);
+  function placeBeat(startMs: number, kind: BrushKind = brushKind) {
+    leaveLibrary(() => updateBlock(makeBeat(kind, startMs, newId())));
   }
-  function dragEffect(event: DragEvent, kind: number | "pulse") {
+  function dragEffect(event: DragEvent, kind: BrushKind) {
+    if (libraryDraft && !leaveLibrary(() => (brushKind = kind))) {
+      event.preventDefault();
+      return;
+    }
     brushKind = kind;
     if (event.dataTransfer) {
       event.dataTransfer.setData("application/x-haptic-beat", String(kind));
@@ -306,49 +317,6 @@
   function changeDuration(block: PulseBlock, value: number) {
     if (!Number.isFinite(value)) return;
     updateBlock(resizePulse(block, value));
-  }
-  function updatePoint(
-    block: PulseBlock,
-    index: number,
-    field: "timeMs" | "amplitudePercent",
-    value: number,
-  ) {
-    if (!Number.isInteger(value)) return;
-    const keyframes = block.keyframes.map((point, i) =>
-      i === index ? { ...point, [field]: value } : point,
-    );
-    updateBlock({ ...block, keyframes });
-  }
-  function addPoint(block: PulseBlock) {
-    const count = signature.blocks.reduce(
-      (sum, b) => sum + (b.type === "pulse" ? b.keyframes.length : 0),
-      0,
-    );
-    if (count >= 32) {
-      error = "Use at most 32 pulse keyframes total.";
-      return;
-    }
-    let best = 0;
-    for (let i = 1; i < block.keyframes.length; i++)
-      if (
-        block.keyframes[i].timeMs - block.keyframes[i - 1].timeMs >
-        block.keyframes[best + 1].timeMs - block.keyframes[best].timeMs
-      )
-        best = i - 1;
-    const left = block.keyframes[best],
-      right = block.keyframes[best + 1];
-    if (right.timeMs - left.timeMs < 2) {
-      error = "No room between these keyframes.";
-      return;
-    }
-    const keyframes = [...block.keyframes];
-    keyframes.splice(best + 1, 0, {
-      timeMs: Math.floor((left.timeMs + right.timeMs) / 2),
-      amplitudePercent: Math.round(
-        (left.amplitudePercent + right.amplitudePercent) / 2,
-      ),
-    });
-    updateBlock({ ...block, keyframes });
   }
   function deviceMessage(message: DeviceMessage) {
     if (message.type === "DONE" || message.type === "STOPPED") {
@@ -503,25 +471,32 @@
         <div class="file-menu">
           {#if filePane === "main"}
             <p class="file-menu-label">PROJECT</p>
-            <button onclick={requestNew}>New <small>Fresh canvas</small></button
+            <button onclick={() => leaveLibrary(requestNew)}
+              >New <small>Fresh canvas</small></button
             >
-            <button onclick={save}>Save <small>Browser</small></button>
-            <button onclick={saveAs}>Save As <small>JSON ↓</small></button>
+            <button onclick={() => leaveLibrary(save)}
+              >Save <small>Browser</small></button
+            >
+            <button onclick={() => leaveLibrary(saveAs)}
+              >Save As <small>JSON ↓</small></button
+            >
             <button onclick={() => (filePane = "open")}
               >Open <span aria-hidden="true">→</span></button
             >
             <div class="file-menu-divider"></div>
             <button
-              onclick={() => {
-                closeFileMenu();
-                codeDialog = true;
-              }}>Generate Code <small>C++</small></button
+              onclick={() =>
+                leaveLibrary(() => {
+                  closeFileMenu();
+                  codeDialog = true;
+                })}>Generate Code <small>C++</small></button
             >
             <button
-              onclick={() => {
-                closeFileMenu();
-                settingsDialog = true;
-              }}>Settings <small>View</small></button
+              onclick={() =>
+                leaveLibrary(() => {
+                  closeFileMenu();
+                  settingsDialog = true;
+                })}>Settings <small>View</small></button
             >
           {:else}
             <button class="file-back" onclick={() => (filePane = "main")}
@@ -529,17 +504,19 @@
             >
             <p class="file-menu-label">OPEN PROJECT</p>
             <button
-              onclick={() => {
-                closeFileMenu();
-                projects = readProjects(localStorage);
-                projectsDialog = true;
-              }}>Browser projects</button
+              onclick={() =>
+                leaveLibrary(() => {
+                  closeFileMenu();
+                  projects = readProjects(localStorage);
+                  projectsDialog = true;
+                })}>Browser projects</button
             >
             <button
-              onclick={() => {
-                closeFileMenu();
-                fileInput?.click();
-              }}>From computer <small>JSON</small></button
+              onclick={() =>
+                leaveLibrary(() => {
+                  closeFileMenu();
+                  fileInput?.click();
+                })}>From computer <small>JSON</small></button
             >
           {/if}
         </div>
@@ -636,7 +613,8 @@
       {/if}
       <button
         class="setup-button"
-        onclick={() => (view = view === "studio" ? "setup" : "studio")}
+        onclick={() =>
+          leaveLibrary(() => (view = view === "studio" ? "setup" : "studio"))}
         >{view === "studio" ? "Setup" : "Studio"}
         <span aria-hidden="true">↗</span></button
       >
@@ -686,7 +664,6 @@
             <div class="section-head timeline-head">
               <div>
                 <h2>Haptic sequencer</h2>
-                <p>Pattern 01 · single track · 40 ms grid</p>
               </div>
               <div class="timeline-controls">
                 <button
@@ -708,14 +685,26 @@
               blocks={signature.blocks}
               {selectedId}
               {brush}
-              onselect={(id) => (selectedId = id)}
+              onselect={selectBeat}
               onplace={placeBeat}
-              onedit={updateBlock}
-              onremove={removeBlock}
+              onedit={(block) => leaveLibrary(() => updateBlock(block))}
+              onremove={(id) => leaveLibrary(() => removeBlock(id))}
+              hasPreset={(id) => presets.some((p) => p.id === id)}
             />
           </section>
           <section class="inspector">
-            {#if selected}<div class="inspector-top">
+            {#if libraryDraft}
+              {#key libraryDraft.id}
+                <PulsePresetInspector
+                  draft={libraryDraft}
+                  onchange={(draft) => (libraryDraft = draft)}
+                  onsave={() => pulseLibrary?.save()}
+                  oncancel={() => pulseLibrary?.cancel()}
+                  error={pulseLibrary?.errorMessage() ?? ""}
+                  editing={presets.some((p) => p.id === libraryDraft?.id)}
+                />
+              {/key}
+            {:else if selected}<div class="inspector-top">
                 <div>
                   <span class="group-label">SELECTED BLOCK</span>
                   <h3>{label(selected)}</h3>
@@ -795,70 +784,32 @@
                     MAX_MS}>Later →</button
                 >
               </div>
-              {#if selected.type === "pulse"}<div class="keyframe-heading">
-                  <span class="group-label">AMPLITUDE ENVELOPE</span><button
-                    onclick={() => addPoint(selected as PulseBlock)}
-                    >+ Add point</button
+              {#if selected.type === "pulse"}
+                {#key selected.id}
+                  <EnvelopeEditor
+                    points={selected.keyframes}
+                    durationMs={selected.durationMs}
+                    maxPoints={32 -
+                      signature.blocks.reduce(
+                        (sum, block) =>
+                          sum +
+                          (block.type === "pulse" && block.id !== selected!.id
+                            ? block.keyframes.length
+                            : 0),
+                        0,
+                      )}
+                    onchange={(keyframes) =>
+                      updateBlock({ ...(selected as PulseBlock), keyframes })}
+                  />
+                {/key}
+                <div class="save-library-row">
+                  <button
+                    onclick={() =>
+                      pulseLibrary?.create(undefined, selected as PulseBlock)}
+                    >Save to library</button
                   >
                 </div>
-                <div class="envelope" aria-hidden="true">
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="none"
-                    ><polyline
-                      points={selected.keyframes
-                        .map(
-                          (point) =>
-                            `${(point.timeMs / selected.durationMs) * 100},${100 - point.amplitudePercent}`,
-                        )
-                        .join(" ")}
-                    /></svg
-                  >
-                </div>
-                <div class="point-list">
-                  {#each selected.keyframes as point, index (index)}<div>
-                      <span>{String(index + 1).padStart(2, "0")}</span><label
-                        >TIME <input
-                          type="number"
-                          min="0"
-                          max={selected.durationMs}
-                          disabled={index === 0 ||
-                            index === selected.keyframes.length - 1}
-                          value={point.timeMs}
-                          onchange={(event) =>
-                            updatePoint(
-                              selected as PulseBlock,
-                              index,
-                              "timeMs",
-                              Number(event.currentTarget.value),
-                            )}
-                        /></label
-                      ><label
-                        >AMP <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={point.amplitudePercent}
-                          onchange={(event) =>
-                            updatePoint(
-                              selected as PulseBlock,
-                              index,
-                              "amplitudePercent",
-                              Number(event.currentTarget.value),
-                            )}
-                        /></label
-                      ><span>%</span><button
-                        disabled={index === 0 ||
-                          index === selected.keyframes.length - 1}
-                        onclick={() =>
-                          updateBlock({
-                            ...(selected as PulseBlock),
-                            keyframes: selected.keyframes.filter(
-                              (_, i) => i !== index,
-                            ),
-                          })}
-                        aria-label="Remove point">×</button
-                      >
-                    </div>{/each}
-                </div>{/if}{:else}<div class="inspector-empty">
+              {/if}{:else}<div class="inspector-empty">
                 Click a beat to edit its feel. Drag it on the grid to change its
                 start time.
               </div>{/if}
@@ -873,10 +824,14 @@
           </div>
           <div class="palette-group">
             <span class="group-label">BUILT-IN IMPULSES</span>
-            <BuiltInImpulses
+            <PulseLibrary
+              bind:this={pulseLibrary}
+              bind:draft={libraryDraft}
+              bind:presets
               selectedId={brushKind}
               onselect={(id) => (brushKind = id)}
               ondragstart={dragEffect}
+              onnotice={(message) => (notice = message)}
             />
           </div>
           <div class="palette-group pulse-group">
@@ -884,7 +839,7 @@
               class="pulse-choice"
               class:active-effect={brushKind === "pulse"}
               aria-pressed={brushKind === "pulse"}
-              onclick={() => (brushKind = "pulse")}
+              onclick={() => leaveLibrary(() => (brushKind = "pulse"))}
               draggable="true"
               ondragstart={(event) => dragEffect(event, "pulse")}
               ><span class="pulse-icon">〰</span><span
@@ -1101,5 +1056,12 @@
   .pulse-choice.active-effect {
     @apply bg-surface-soft;
     box-shadow: var(--shadow-selected);
+  }
+  .save-library-row {
+    @apply flex justify-end mx-6 mt-5;
+  }
+  .save-library-row button {
+    @apply rounded-control px-4 py-2.5 bg-transparent text-ink text-size-12;
+    border: calc(var(--spacing) * 0.25) solid var(--color-control-line);
   }
 </style>

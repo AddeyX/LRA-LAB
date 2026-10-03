@@ -706,11 +706,7 @@
         var(--color-control) 0 calc(var(--spacing) * 0.25),
         transparent calc(var(--spacing) * 0.25) 20%
       ),
-      repeating-linear-gradient(
-        to bottom,
-        var(--color-control) 0 calc(var(--spacing) * 0.25),
-        var(--color-field) calc(var(--spacing) * 0.25) 25%
-      );
+      var(--color-field);
     @apply rounded-none overflow-hidden;
   }
   .envelope polyline {

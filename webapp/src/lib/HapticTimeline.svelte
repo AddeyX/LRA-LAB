@@ -1,18 +1,29 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { MAX_MS, blockDuration, effectById, type Block } from "./signature";
   import { GRID_MS, editTimeline, resizePulse, snapTime } from "./timeline";
   import ScrubField from "./components/ScrubField.svelte";
+  import type { BrushKind } from "./pulse-library";
 
-  let { blocks, selectedId, brush, onselect, onplace, onedit, onremove } =
-    $props<{
-      blocks: Block[];
-      selectedId: string | null;
-      brush: Block;
-      onselect: (id: string) => void;
-      onplace: (timeMs: number, kind?: number | "pulse") => void;
-      onedit: (block: Block) => void;
-      onremove: (id: string) => void;
-    }>();
+  let {
+    blocks,
+    selectedId,
+    brush,
+    onselect,
+    onplace,
+    onedit,
+    onremove,
+    hasPreset,
+  } = $props<{
+    blocks: Block[];
+    selectedId: string | null;
+    brush: Block;
+    onselect: (id: string) => boolean | void;
+    onplace: (timeMs: number, kind?: BrushKind) => void;
+    onedit: (block: Block) => void;
+    onremove: (id: string) => void;
+    hasPreset: (id: string) => boolean;
+  }>();
 
   let lane: HTMLDivElement;
   let viewport: HTMLDivElement;
@@ -65,8 +76,10 @@
     event.preventDefault();
     event.stopPropagation();
     hoverMs = null;
-    onselect(block.id);
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    if (onselect(block.id) === false) return;
+    const target = event.currentTarget as HTMLElement;
+    target.focus({ preventScroll: true });
+    target.setPointerCapture(event.pointerId);
     drag = {
       original: block,
       candidate: block,
@@ -115,6 +128,17 @@
         ? resizePulse(block, block.durationMs + amount)
         : { ...block, startMs: Math.max(0, block.startMs + amount) },
     );
+    const button = event.currentTarget as HTMLButtonElement;
+    void tick().then(() => {
+      if (!button.isConnected) return;
+      button.focus({ preventScroll: true });
+      const bounds = button.getBoundingClientRect(),
+        visible = viewport.getBoundingClientRect();
+      if (bounds.left < visible.left)
+        viewport.scrollLeft -= visible.left - bounds.left;
+      else if (bounds.right > visible.right)
+        viewport.scrollLeft += bounds.right - visible.right;
+    });
   }
   function drop(event: DragEvent) {
     event.preventDefault();
@@ -122,6 +146,8 @@
     const value = event.dataTransfer?.getData("application/x-haptic-beat");
     if (!value) return;
     if (value === "pulse") onplace(snapTime(timeAt(event.clientX)), "pulse");
+    else if (value.startsWith("preset:") && hasPreset(value.slice(7)))
+      onplace(snapTime(timeAt(event.clientX)), value as BrushKind);
     else if (effectById(Number(value)))
       onplace(snapTime(timeAt(event.clientX)), Number(value));
   }
@@ -219,7 +245,10 @@
               aria-label={`${name(block)} at ${block.startMs} ms`}
               aria-pressed={selectedId === block.id}
               title={`${name(block)} · ${block.startMs}–${block.startMs + blockDuration(block)} ms. Drag or use arrow keys to move; Delete to remove.`}
-              onclick={() => onselect(block.id)}
+              onclick={(event) => {
+                if (onselect(block.id) !== false)
+                  event.currentTarget.focus({ preventScroll: true });
+              }}
               onpointerenter={() => {
                 if (!drag) hoverMs = null;
               }}
@@ -340,12 +369,6 @@
         color-mix(in srgb, var(--color-line) 65%, transparent) 0
           calc(var(--spacing) * 0.25),
         transparent calc(var(--spacing) * 0.25) var(--cell)
-      ),
-      repeating-linear-gradient(
-        to bottom,
-        transparent 0 calc(var(--spacing) * 12),
-        color-mix(in srgb, var(--color-line) 40%, transparent)
-          calc(var(--spacing) * 12) calc(var(--spacing) * 12.25)
       ),
       var(--color-surface-raised);
   }
