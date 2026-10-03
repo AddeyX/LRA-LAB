@@ -753,8 +753,9 @@
                         min={0}
                         max={MAX_MS}
                         size="lg"
-                        accent="#80b4ff"
-                        chipColor="var(--surface)"
+                        accent="var(--color-accent-bright)"
+                        chipColor="var(--color-canvas)"
+                        showFill={false}
                         disabled
                       />
                     {/key}
@@ -773,8 +774,9 @@
                         step={GRID_MS}
                         fineMultiplier={1}
                         size="lg"
-                        accent="#80b4ff"
-                        chipColor="var(--surface)"
+                        accent="var(--color-accent-bright)"
+                        chipColor="var(--color-canvas)"
+                        showFill={false}
                         onChange={(value) =>
                           changeDuration(selected as PulseBlock, value)}
                       />
@@ -1058,52 +1060,46 @@
   </div>
 </Dialog>
 
-<style>
+<style lang="postcss">
+  @reference "../app.css";
+
   .inspector-fields {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: end;
-    gap: 14px;
+    @apply grid grid-cols-2 items-end gap-3.5;
   }
   .duration-field {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    padding-right: 25px;
+    @apply flex flex-col items-start gap-2 pe-6;
   }
   .duration-field:first-child {
     grid-column: 1 / -1;
-    padding-left: 25px;
+    @apply ps-6;
   }
-  @media (max-width: 500px) {
+  @variant max-fields {
     .inspector-fields {
-      grid-template-columns: minmax(0, 1fr);
+      @apply grid-cols-1;
     }
     .duration-field {
-      padding-left: 25px;
+      @apply ps-6;
     }
   }
   .editor-column {
-    grid-template-columns: minmax(0, 1fr);
-    align-content: start;
+    @apply grid-cols-1 content-start;
   }
   .timeline-section,
   .inspector {
-    min-width: 0;
+    @apply min-w-0;
   }
   .timeline-head {
-    flex-wrap: wrap;
+    @apply flex-wrap;
   }
   .timeline-controls {
-    justify-content: flex-end;
+    @apply justify-end;
   }
   .inspector-top {
     border-top: 0;
-    padding-top: 0;
+    @apply pt-0;
   }
   .pulse-choice.active-effect {
-    background: var(--surface-soft);
-    box-shadow: inset 0 0 0 1px var(--accent-bright);
+    @apply bg-surface-soft;
+    box-shadow: var(--shadow-selected);
   }
 </style>

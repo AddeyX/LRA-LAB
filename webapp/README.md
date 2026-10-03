@@ -5,7 +5,7 @@ The web app is LRA Lab's local signature editor. It gives users a timeline for c
 ## Stack and current setup
 
 - SvelteKit and Svelte 5 with TypeScript, built by Vite; `adapter-auto` handles the SvelteKit build.
-- `portal-bits` UI components and local CSS, with DM Sans and Space Grotesk variable fonts.
+- Tailwind CSS v4 through `@tailwindcss/vite`, with `portal-bits` UI components and DM Sans and Space Grotesk variable fonts.
 - Browser Web Serial for direct USB connection to matching ESP32-C3 firmware. No app server API or user accounts.
 - Browser local storage for the active draft. Data stays in that browser profile; there is no cloud sync or project library.
 - Vitest for signature and serial tests, plus `svelte-check` for type and Svelte diagnostics.
@@ -14,7 +14,13 @@ The editor currently supports built-in DRV2605L library 6 effects, custom pulses
 
 ## Appearance
 
-The studio and setup guide share a black background with white text and blue accents. `src/lib/components/DarkVeil.svelte` renders the supplied Svelte Bits veil using `ogl`; the layout enables its optional `blueTint` prop and controls speed and resolution. The veil respects reduced motion, pauses when the tab is hidden, and falls back to the black canvas when WebGL is unavailable. Palette tokens live in `src/app.css`.
+The studio and setup guide share a black background with white text and blue accents. `src/lib/components/DarkVeil.svelte` renders the supplied Svelte Bits veil using `ogl`; the layout enables its optional `blueTint` prop and controls speed and resolution. The veil respects reduced motion, pauses when the tab is hidden, and falls back to the black canvas when WebGL is unavailable.
+
+[`src/tokens.css`](src/tokens.css) is the shared Tailwind `@theme` for colors, radius, typography sizes, breakpoints, shadows, and layout dimensions. Spacing utilities such as `gap-3` and `px-6` derive from `--spacing` (4px). Semantic dimensions include `--spacing-page-gutter`, `--spacing-sidebar`, and `--spacing-timeline-cell`. Use theme utilities such as `bg-surface`, `text-muted`, `rounded-panel`, and `max-studio:px-page-gutter-mobile`; add tokens here instead of embedding literal colors or distances in components.
+
+`src/app.css` imports Tailwind theme and utilities, layers Portal Bits and shared component rules, and maps Portal Bits variables to the same theme. Preflight is intentionally omitted to preserve the existing browser baseline. Scoped styles use `<style lang="postcss">` with `@reference` to `app.css` and token-backed `@apply` utilities. Custom gradients and mechanics also consume theme variables. Default Tailwind colors and radii are disabled so the app palette and radius scale remain explicit.
+
+Timeline positions and widths multiply `--spacing-timeline-cell` by timing and zoom ratios; pointer placement uses rendered bounds. The timeline remains physically left-to-right when surrounding chrome mirrors for RTL. SVG path/viewBox coordinates, shader math, and pointer gesture thresholds describe graphics or interaction mechanics rather than layout spacing.
 
 ## Run locally
 
@@ -48,7 +54,8 @@ Editor use without a board is possible; hardware preview and calibration require
 | [`src/lib/export.ts`](src/lib/export.ts) | Arduino C++ generation |
 | [`src/lib/projects.ts`](src/lib/projects.ts) | Browser project storage and JSON import validation |
 | [`src/lib/SetupView.svelte`](src/lib/SetupView.svelte) | Interactive device setup guide |
-| [`src/app.css`](src/app.css) | App styles |
+| [`src/tokens.css`](src/tokens.css) | Shared Tailwind theme and design tokens |
+| [`src/app.css`](src/app.css) | Tailwind imports, shared styles, and Portal Bits token aliases |
 
 The app sends the full signature over 115200 baud USB serial as newline-delimited JSON. Firmware validates and buffers it, then plays locally on `PREVIEW`. Protocol version, effect catalog version, signature limits, and firmware behavior are described in the [firmware README](../firmware/README.md).
 

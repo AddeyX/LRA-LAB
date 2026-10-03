@@ -40,8 +40,7 @@
 
 {#snippet symbol(category: number)}
   <svg
-    width="22"
-    height="22"
+    class="size-5.5"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -99,90 +98,75 @@
 </div>
 <p class="impulse-hint">Fill shows amplitude</p>
 
-<style>
+<style lang="postcss">
+  @reference "../app.css";
+
   .impulse-legend,
   .impulse-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px;
+    @apply grid grid-cols-4 gap-1.5;
   }
   .impulse-legend {
-    margin-bottom: 8px;
-    color: var(--muted);
-    font-size: 10px;
-    font-weight: 600;
-    text-align: center;
+    @apply mb-2 text-muted text-size-10 font-semibold text-center;
   }
   .impulse-grid {
-    grid-template-rows: repeat(4, 70px);
+    grid-template-rows: repeat(4, var(--spacing-rail));
   }
   .impulse-pad {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    min-width: 0;
-    padding: 5px 2px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--surface-raised);
-    color: var(--text);
+    @apply relative isolate overflow-hidden min-w-0;
+    padding: calc(var(--spacing) * 1.25) calc(var(--spacing) * 0.5);
+    border: calc(var(--spacing) * 0.25) solid var(--color-line);
+    @apply rounded-field bg-surface-raised text-ink;
     transition:
       border-color 150ms ease,
       background 150ms ease;
   }
   .impulse-fill {
-    position: absolute;
+    @apply absolute;
     inset: auto 0 0;
     height: var(--amplitude);
     z-index: -1;
-    background: color-mix(in srgb, var(--accent) 24%, var(--surface-raised));
-    border-top: 1px solid
-      color-mix(in srgb, var(--accent-bright) 35%, transparent);
+    background: color-mix(
+      in srgb,
+      var(--color-accent) 24%,
+      var(--color-surface-raised)
+    );
+    border-top: calc(var(--spacing) * 0.25) solid
+      color-mix(in srgb, var(--color-accent-bright) 35%, transparent);
   }
   .impulse-content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
+    @apply h-full flex flex-col items-center justify-center gap-0.75;
   }
   .impulse-content svg {
-    color: var(--accent-bright);
-    flex: none;
+    @apply text-accent-bright flex-none;
   }
   .impulse-content strong {
-    font-size: 11px;
+    @apply text-size-11;
     line-height: 1;
-    font-variant-numeric: tabular-nums;
+    @apply tabular-nums;
   }
   .impulse-content small {
-    color: var(--muted);
-    font-size: 9px;
+    @apply text-muted text-size-9;
     line-height: 1;
-    white-space: nowrap;
+    @apply whitespace-nowrap;
   }
   .impulse-pad:hover {
-    border-color: var(--accent);
-    background: var(--surface-soft);
+    @apply border-accent bg-surface-soft;
   }
   .impulse-pad.selected {
-    border-color: var(--accent-bright);
-    box-shadow: inset 0 0 0 1px var(--accent-bright);
+    @apply border-accent-bright;
+    box-shadow: var(--shadow-selected);
   }
   .impulse-pad:focus-visible {
-    outline: 2px solid var(--accent-bright);
-    outline-offset: 2px;
+    outline: calc(var(--spacing) * 0.5) solid var(--color-accent-bright);
+    @apply outline-offset-[var(--outline-width-focus)];
   }
   .impulse-empty {
-    border: 1px dashed var(--line);
-    border-radius: 8px;
+    border: calc(var(--spacing) * 0.25) dashed var(--color-line);
+    @apply rounded-field;
   }
   .impulse-hint {
-    margin: 9px 0 0;
-    color: var(--muted);
-    font-size: 10px;
-    text-align: center;
+    margin: calc(var(--spacing) * 2.25) 0 0;
+    @apply text-muted text-size-10 text-center;
   }
   @media (prefers-reduced-motion: reduce) {
     .impulse-pad {

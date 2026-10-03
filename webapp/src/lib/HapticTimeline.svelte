@@ -16,7 +16,7 @@
 
   let lane: HTMLDivElement;
   let viewport: HTMLDivElement;
-  let cellWidth = $state(20);
+  let zoom = $state(100);
   let hoverMs = $state<number | null>(null);
   let drag = $state<{
     original: Block;
@@ -34,14 +34,18 @@
       (hoverMs === null ? null : { ...brush, startMs: hoverMs }),
   );
   let ghostError = $derived(ghost ? editTimeline(blocks, ghost).error : null);
-  let width = $derived((MAX_MS / GRID_MS) * cellWidth);
-  const x = (ms: number) => (ms / GRID_MS) * cellWidth;
+  // CSS owns the cell size; timing and zoom only supply dimensionless multipliers.
+  const distance = (cells: number) =>
+    `calc(var(--spacing-timeline-cell) * ${cells})`;
+  const x = (ms: number) => distance((ms / GRID_MS) * (zoom / 100));
   const name = (block: Block) =>
     block.type === "pulse"
       ? "Custom pulse"
       : (effectById(block.effectId)?.name ?? "Effect");
-  const timeAt = (clientX: number) =>
-    ((clientX - lane.getBoundingClientRect().left) / width) * MAX_MS;
+  const timeAt = (clientX: number) => {
+    const bounds = lane.getBoundingClientRect();
+    return ((clientX - bounds.left) / bounds.width) * MAX_MS;
+  };
   const envelope = (block: Block) =>
     block.type === "pulse"
       ? block.keyframes
@@ -77,6 +81,7 @@
     if (!drag || drag.pointerId !== event.pointerId) return;
     if (!drag.moved && Math.abs(event.clientX - drag.originX) < 3) return;
     const bounds = viewport.getBoundingClientRect();
+    const cellWidth = lane.getBoundingClientRect().width / steps.length;
     if (event.clientX > bounds.right - 28) viewport.scrollLeft += cellWidth;
     if (event.clientX < bounds.left + 28) viewport.scrollLeft -= cellWidth;
     const timeMs = timeAt(event.clientX);
@@ -122,7 +127,7 @@
   }
 </script>
 
-<div class="sequencer-toolbar">
+<div class="sequencer-toolbar flex-wrap">
   <span class="snap-label"
     ><span aria-hidden="true">▦</span> SNAP <strong>40 ms</strong></span
   >
@@ -131,25 +136,35 @@
     <ScrubField
       label="Zoom"
       suffix="%"
-      value={cellWidth * 5}
+      value={zoom}
       defaultValue={100}
       min={60}
       max={160}
       step={5}
       size="sm"
-      accent="#80b4ff"
-      chipColor="var(--surface)"
-      onChange={(value) => (cellWidth = value / 5)}
+      accent="var(--color-accent-bright)"
+      chipColor="var(--color-canvas)"
+      showFill={false}
+      onChange={(value) => (zoom = value)}
     />
   </div>
 </div>
-<div class="sequencer-body" role="region" aria-label="Haptic timeline">
+<!-- Timeline coordinates and drag math remain physical left-to-right in RTL layouts. -->
+<div
+  class="sequencer-body"
+  role="region"
+  aria-label="Haptic timeline"
+  dir="ltr"
+>
   <div class="sequencer-viewport" bind:this={viewport}>
-    <div class="sequencer-canvas" style:width={`${width}px`}>
+    <div
+      class="sequencer-canvas"
+      style:width={distance((steps.length * zoom) / 100)}
+    >
       <div class="step-ruler" aria-hidden="true">
         {#each marks as mark (mark)}<span
             class:major={mark % 1000 === 0}
-            style:left={`${x(mark)}px`}
+            style:left={x(mark)}
             >{(mark / 1000).toFixed(2)}<small>s</small></span
           >{/each}
       </div>
@@ -158,7 +173,7 @@
       <div
         class="beat-lane"
         bind:this={lane}
-        style:--cell={`${cellWidth}px`}
+        style:--cell={distance(zoom / 100)}
         onpointerleave={() => {
           if (!drag) hoverMs = null;
         }}
@@ -173,8 +188,8 @@
         {#each steps as step (step)}
           <button
             class="grid-cell"
-            style:left={`${x(step)}px`}
-            style:width={`${cellWidth}px`}
+            style:left={x(step)}
+            style:width={distance(zoom / 100)}
             aria-label={`Place haptic at ${step} ms`}
             title={`${step} ms`}
             onpointerenter={() => {
@@ -196,8 +211,8 @@
             class:selected={selectedId === block.id}
             class:custom={block.type === "pulse"}
             class:dragging={drag?.original.id === block.id && drag?.moved}
-            style:left={`${x(block.startMs)}px`}
-            style:width={`${x(blockDuration(block))}px`}
+            style:left={x(block.startMs)}
+            style:width={x(blockDuration(block))}
           >
             <button
               class="beat"
@@ -240,8 +255,8 @@
           <div
             class="beat-ghost"
             class:invalid={!!ghostError}
-            style:left={`${x(ghost.startMs)}px`}
-            style:width={`${x(blockDuration(ghost))}px`}
+            style:left={x(ghost.startMs)}
+            style:width={x(blockDuration(ghost))}
             aria-hidden="true"
           >
             <span>{ghost.startMs} ms</span><small
@@ -258,205 +273,151 @@
   </div>
 </div>
 
-<style>
+<style lang="postcss">
+  @reference "../app.css";
+
   .sequencer-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 20px;
-    border-block: 1px solid var(--line);
-    background: var(--surface);
-    font-size: 10px;
+    @apply flex items-center gap-4;
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 5);
+    border-block: calc(var(--spacing) * 0.25) solid var(--color-line);
+    @apply bg-surface text-size-10;
   }
   .snap-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    white-space: nowrap;
+    @apply flex items-center gap-2 text-muted tracking-snap whitespace-nowrap;
   }
   .snap-label > span {
-    color: var(--accent-bright);
-    font-size: 18px;
+    @apply text-accent-bright text-size-18;
   }
   .snap-label strong {
-    color: var(--accent-bright);
+    @apply text-accent-bright;
     letter-spacing: 0;
-    background: var(--surface-soft);
-    padding: 4px 7px;
-    border-radius: 3px;
+    @apply bg-surface-soft;
+    padding: calc(var(--spacing) * 1) calc(var(--spacing) * 1.75);
+    @apply rounded-badge;
   }
   .timeline-hint {
-    color: var(--muted);
+    @apply text-muted;
   }
   .zoom-control {
-    margin-left: auto;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    color: var(--muted);
-    font-size: 9px;
-    letter-spacing: 0.1em;
+    @apply ms-auto flex gap-2 items-center text-muted text-size-9 tracking-detail;
   }
   .sequencer-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    min-width: 0;
-    margin-inline: 20px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    overflow: hidden;
+    @apply grid grid-cols-1 min-w-0 mx-5;
+    border: calc(var(--spacing) * 0.25) solid var(--color-line);
+    @apply rounded-inset overflow-hidden;
   }
   .sequencer-viewport {
-    overflow-x: auto;
-    min-width: 0;
-    max-width: 100%;
-    scrollbar-color: var(--line) var(--canvas);
+    @apply overflow-x-auto min-w-0 max-w-full;
+    scrollbar-color: var(--color-line) var(--color-canvas);
     scrollbar-width: thin;
   }
   .sequencer-canvas {
-    position: relative;
+    @apply relative;
   }
   .step-ruler {
-    height: 42px;
-    background: var(--surface);
-    position: relative;
-    border-bottom: 1px solid var(--line);
+    @apply h-ruler bg-surface relative;
+    border-bottom: calc(var(--spacing) * 0.25) solid var(--color-line);
   }
   .step-ruler > span {
-    position: absolute;
-    top: 16px;
-    height: 26px;
-    padding-left: 5px;
-    border-left: 1px solid var(--line);
-    font-size: 10px;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
+    @apply absolute top-4 h-6.5 ps-1.25;
+    border-left: calc(var(--spacing) * 0.25) solid var(--color-line);
+    @apply text-size-10 text-muted tabular-nums;
   }
   .step-ruler > span.major {
-    color: var(--text);
-    border-color: var(--subtle);
-    font-weight: 700;
+    @apply text-ink border-subtle font-bold;
   }
   .step-ruler small {
-    font-size: 8px;
-    padding-left: 2px;
+    @apply text-size-8 ps-0.5;
   }
   .beat-lane {
-    height: 196px;
-    position: relative;
-    overflow: hidden;
+    @apply h-lane relative overflow-hidden;
     background:
       repeating-linear-gradient(
         to right,
-        color-mix(in srgb, var(--accent-bright) 18%, transparent) 0 1px,
-        transparent 1px calc(var(--cell) * 5)
+        color-mix(in srgb, var(--color-accent-bright) 18%, transparent) 0
+          calc(var(--spacing) * 0.25),
+        transparent calc(var(--spacing) * 0.25) calc(var(--cell) * 5)
       ),
       repeating-linear-gradient(
         to right,
-        color-mix(in srgb, var(--line) 65%, transparent) 0 1px,
-        transparent 1px var(--cell)
+        color-mix(in srgb, var(--color-line) 65%, transparent) 0
+          calc(var(--spacing) * 0.25),
+        transparent calc(var(--spacing) * 0.25) var(--cell)
       ),
       repeating-linear-gradient(
         to bottom,
-        transparent 0 48px,
-        color-mix(in srgb, var(--line) 40%, transparent) 48px 49px
+        transparent 0 calc(var(--spacing) * 12),
+        color-mix(in srgb, var(--color-line) 40%, transparent)
+          calc(var(--spacing) * 12) calc(var(--spacing) * 12.25)
       ),
-      var(--surface-raised);
+      var(--color-surface-raised);
   }
   .grid-cell {
-    position: absolute;
+    @apply absolute;
     inset-block: 0;
     background: transparent;
     border: 0;
-    border-radius: 0;
-    padding: 0;
-    cursor: crosshair;
+    @apply rounded-none;
+    @apply p-0 cursor-crosshair;
     transition: none;
   }
   .grid-cell:hover,
   .grid-cell:focus-visible {
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
     transform: none;
   }
   .lane-empty {
-    position: absolute;
-    top: 72px;
-    left: 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    pointer-events: none;
-    color: var(--muted);
-    font-size: 12px;
+    @apply absolute top-18;
+    left: calc(var(--spacing) * 8);
+    @apply flex flex-col gap-2 pointer-events-none text-muted text-size-12;
   }
   .lane-empty strong {
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 500;
+    @apply text-ink text-size-14 font-medium;
   }
   .beat-wrapper {
-    position: absolute;
-    top: 42px;
-    height: 112px;
+    @apply absolute top-10.5 h-beat;
     z-index: 2;
-    border-radius: 9px;
-    background: var(--accent);
-    border: 1px solid var(--accent-bright);
-    color: var(--text);
-    box-shadow: 0 3px 0 var(--canvas);
+    @apply rounded-beat bg-accent;
+    border: calc(var(--spacing) * 0.25) solid var(--color-accent-bright);
+    @apply text-ink;
+    box-shadow: var(--shadow-beat);
   }
   .beat-wrapper.custom {
-    background: var(--accent-deep);
-    border-color: var(--accent);
-    color: var(--text);
+    @apply bg-accent-deep border-accent text-ink;
   }
   .beat-wrapper.selected {
-    outline: 2px solid var(--text);
-    outline-offset: 2px;
+    outline: calc(var(--spacing) * 0.5) solid var(--color-ink);
+    @apply outline-offset-[var(--outline-width-focus)];
     z-index: 3;
   }
   .beat-wrapper.dragging {
     opacity: 0.28;
   }
   .beat {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    padding: 8px 5px;
-    gap: 5px;
+    @apply flex flex-col w-full h-full;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 1.25);
+    @apply gap-1.25;
     border: none;
     background: transparent;
     color: inherit;
-    overflow: hidden;
-    text-align: left;
-    cursor: grab;
+    @apply overflow-hidden text-start cursor-grab;
     touch-action: none;
     transition: none;
-    border-radius: 3px;
+    @apply rounded-badge;
   }
   .beat:hover:enabled,
   .beat:active:enabled {
     transform: none;
-    background: color-mix(in srgb, var(--text) 8%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 8%, transparent);
   }
   .beat:active {
-    cursor: grabbing;
+    @apply cursor-grabbing;
   }
   .beat-name {
-    font-size: 10px;
-    font-weight: 700;
-    white-space: nowrap;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    @apply text-size-10 font-bold whitespace-nowrap max-w-full overflow-hidden text-ellipsis;
   }
   .beat svg {
-    width: 100%;
-    height: 43px;
-    flex-shrink: 0;
+    @apply w-full h-10.75 shrink-0;
     margin-block: auto;
     opacity: 0.75;
   }
@@ -467,66 +428,51 @@
     vector-effect: non-scaling-stroke;
   }
   .beat-duration {
-    font-size: 9px;
-    white-space: nowrap;
+    @apply text-size-9 whitespace-nowrap;
     opacity: 1;
-    font-variant-numeric: tabular-nums;
+    @apply tabular-nums;
   }
   .resize-handle {
-    position: absolute;
+    @apply absolute;
     right: 0;
-    top: 0;
-    height: 100%;
-    width: 12px;
-    padding: 0;
-    background: color-mix(in srgb, var(--canvas) 18%, transparent);
+    @apply top-0 h-full w-3 p-0;
+    background: color-mix(in srgb, var(--color-canvas) 18%, transparent);
     border: 0;
     color: inherit;
-    cursor: ew-resize;
+    @apply cursor-ew-resize;
     touch-action: none;
-    border-radius: 0 3px 3px 0;
+    border-radius: 0 var(--radius-badge) var(--radius-badge) 0;
     transition: none;
   }
   .resize-handle:hover:enabled {
-    background: color-mix(in srgb, var(--canvas) 30%, transparent);
+    background: color-mix(in srgb, var(--color-canvas) 30%, transparent);
     transform: none;
   }
   .beat-ghost {
-    position: absolute;
-    top: 40px;
-    height: 116px;
-    border: 2px dashed var(--accent-bright);
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
-    color: var(--text);
+    @apply absolute top-10 h-ghost;
+    border: calc(var(--spacing) * 0.5) dashed var(--color-accent-bright);
+    background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+    @apply text-ink;
     z-index: 4;
-    pointer-events: none;
-    padding: 8px 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    overflow: hidden;
-    border-radius: 4px;
-    white-space: nowrap;
-    font-size: 11px;
+    @apply pointer-events-none;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 1);
+    @apply flex flex-col gap-2 overflow-hidden rounded-xs whitespace-nowrap text-size-11;
   }
   .beat-ghost small {
-    font-size: 9px;
+    @apply text-size-9;
   }
   .beat-ghost.invalid {
-    border-color: #f5a6b9;
-    background: #38232c;
-    color: #ffd0d7;
+    @apply border-danger bg-danger-surface text-danger-ink;
   }
-  @media (max-width: 760px) {
+  @variant max-studio {
     .sequencer-body {
-      margin-inline: 12px;
+      @apply mx-3;
     }
     .timeline-hint {
-      display: none;
+      @apply hidden;
     }
     .sequencer-toolbar {
-      gap: 8px;
-      padding-inline: 12px;
+      @apply gap-2 px-3;
     }
   }
 </style>
