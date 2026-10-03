@@ -32,6 +32,12 @@
   </div>
 </div>
 
+<style>
+  :global(html) {
+    overscroll-behavior: none;
+  }
+</style>
+
 {#if dev && browser}
   <Agentation workspaceRoot={import.meta.env.VITE_WORKSPACE_ROOT ?? "."} />
 {/if}
