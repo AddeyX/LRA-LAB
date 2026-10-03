@@ -36,54 +36,65 @@
   } = $props();
 </script>
 
-<Card area="inspector" aria-label="Beat" data-inspector>
-  {#if draft}
-    {#key draft.id}
-      <PulsePresetInspector
-        {draft}
-        onchange={ondraftchange}
-        onsave={ondraftsave}
-        oncancel={ondraftcancel}
-        error={draftError}
-        editing={draftEditing}
+<Card area="inspector" aria-label="Beat" data-inspector compact stack>
+  <div class="inspector-body">
+    {#if draft}
+      {#key draft.id}
+        <PulsePresetInspector
+          {draft}
+          onchange={ondraftchange}
+          onsave={ondraftsave}
+          oncancel={ondraftcancel}
+          error={draftError}
+          editing={draftEditing}
+        />
+      {/key}
+    {:else if block}
+      <BeatEditor
+        {block}
+        {maxPoints}
+        {onupdate}
+        {onremove}
+        {onmove}
+        {onduration}
+        {onsavepulse}
       />
-    {/key}
-  {:else if block}
-    <BeatEditor
-      {block}
-      {maxPoints}
-      {onupdate}
-      {onremove}
-      {onmove}
-      {onduration}
-      {onsavepulse}
-    />
-  {:else}
-    <div class="beat-empty">
-      <svg viewBox="0 0 64 32" aria-hidden="true"
-        ><rect x="2" y="9" width="14" height="14" rx="4" /><rect
-          x="22"
-          y="4"
-          width="20"
-          height="24"
-          rx="5"
-        /><rect x="48" y="11" width="14" height="10" rx="3" /></svg
-      >
-      <strong>Pick a beat</strong>
-      <span>Click the grid to place one. Drag to move it.</span>
-    </div>
-  {/if}
+    {:else}
+      <div class="beat-empty">
+        <svg viewBox="0 0 64 32" aria-hidden="true"
+          ><rect x="2" y="9" width="14" height="14" rx="4" /><rect
+            x="22"
+            y="4"
+            width="20"
+            height="24"
+            rx="5"
+          /><rect x="48" y="11" width="14" height="10" rx="3" /></svg
+        >
+        <strong>Pick a beat</strong>
+        <span>Click the grid to place one. Drag to move it.</span>
+      </div>
+    {/if}
+  </div>
 </Card>
 
 <style>
+  .inspector-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    padding: var(--card-inset, 0);
+    overflow-y: auto;
+  }
   .beat-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 100%;
-    min-height: 272px;
+    flex: 1;
+    min-height: 12rem;
     color: var(--color-muted);
     font-size: 14px;
     text-align: center;

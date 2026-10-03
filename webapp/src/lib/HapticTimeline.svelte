@@ -305,7 +305,7 @@
 
   .sequencer-toolbar {
     @apply flex items-center gap-3;
-    padding: 0 0 calc(var(--spacing) * 3);
+    padding: 0 var(--card-inset, 0) calc(var(--spacing) * 3);
     @apply text-size-13;
   }
   .snap-label {

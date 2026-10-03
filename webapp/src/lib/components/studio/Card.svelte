@@ -6,6 +6,7 @@
     area,
     title,
     stack = false,
+    compact = false,
     actions,
     children,
     ...rest
@@ -13,6 +14,7 @@
     area: string;
     title?: string;
     stack?: boolean;
+    compact?: boolean;
     actions?: Snippet;
     children: Snippet;
   } & HTMLAttributes<HTMLElement> = $props();
@@ -22,6 +24,7 @@
 <section
   class="card"
   class:stack
+  class:compact
   style:grid-area={area}
   aria-labelledby={title ? titleId : undefined}
   {...rest}
@@ -59,6 +62,21 @@
     margin: 0;
     font: 500 18px/1.2 var(--font-sans);
     letter-spacing: 0.005em;
+  }
+  /* Padding + 18px inner surface radius must equal --radius-card (28px). */
+  .card.compact {
+    --card-inset: 8px;
+    padding: 10px;
+    border-radius: var(--radius-card);
+  }
+  .card.compact .card-head {
+    gap: 12px;
+    min-height: 36px;
+    margin-bottom: 10px;
+    padding: var(--card-inset) var(--card-inset) 0;
+  }
+  .card.compact .card-head h2 {
+    font-size: 16px;
   }
   @media (max-width: 45rem) {
     .card {

@@ -641,9 +641,15 @@
 
 <style>
   .lab {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     min-width: 0;
+    min-height: 0;
   }
   .lab-grid {
+    flex: 1;
+    min-height: 0;
     display: grid;
     grid-template-columns:
       minmax(0, 1fr)
@@ -651,7 +657,7 @@
         calc(var(--spacing-library-min) * 0.85),
         calc(var(--spacing-library) * 0.85)
       );
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas:
       "sequence library"
       "inspector library";
@@ -659,9 +665,13 @@
     padding: 0
       max(var(--spacing-page-gutter), calc((100% - var(--spacing-content)) / 2));
   }
+  .lab-grid > :global(*) {
+    min-height: 0;
+  }
   @media (max-width: 62.5rem) {
     .lab-grid {
       grid-template-columns: minmax(0, 1fr);
+      flex: none;
       grid-template-rows: none;
       grid-template-areas: "sequence" "inspector" "library";
     }

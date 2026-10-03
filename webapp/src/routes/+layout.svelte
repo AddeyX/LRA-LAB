@@ -28,7 +28,9 @@
     background: var(--color-canvas);
   }
   .lab-page {
+    display: flex;
     flex: 1;
+    flex-direction: column;
     min-width: 0;
   }
   .lab-footer {
@@ -40,5 +42,17 @@
     color: var(--color-subtle);
     font: 400 13px/24px var(--font-sans);
     letter-spacing: 0.03em;
+  }
+  @media (min-width: 62.5rem) {
+    .lab-frame:has(:global(.lab-grid)) {
+      height: 100svh;
+      min-height: 36rem;
+    }
+    .lab-frame:has(:global(.lab-grid)) .lab-page {
+      min-height: 0;
+    }
+    .lab-frame:has(:global(.lab-grid)) .lab-footer {
+      padding-block: 16px;
+    }
   }
 </style>

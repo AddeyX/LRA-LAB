@@ -148,13 +148,6 @@
 />
 
 <div class="envelope-editor">
-  <div class="envelope-toolbar">
-    <span class="envelope-title">Envelope</span>
-    <div class="node-actions">
-      <button onclick={add} disabled={!insertion}>Add point</button>
-      <button onclick={remove} disabled={!canRemove}>Remove</button>
-    </div>
-  </div>
   <div class="envelope-surface">
     <div
       class="envelope-plot"
@@ -186,13 +179,15 @@
       {/each}
     </div>
   </div>
-  <div class="envelope-readout">
-    <span>0 ms</span>
-    <strong
+  <div class="envelope-footer">
+    <strong class="envelope-readout"
       >Point {selectedIndex + 1}
       <span>{active.timeMs} ms · {active.amplitudePercent}%</span></strong
     >
-    <span>{durationMs} ms</span>
+    <div class="node-actions">
+      <button onclick={add} disabled={!insertion}>Add point</button>
+      <button onclick={remove} disabled={!canRemove}>Remove point</button>
+    </div>
   </div>
   <span class="sr-only" aria-live="polite">{announcement}</span>
 </div>
@@ -200,14 +195,11 @@
 <style lang="postcss">
   @reference "../../app.css";
   .envelope-editor {
-    @apply mt-6;
+    @apply flex flex-col gap-3 min-h-0;
+    flex: 1 1 auto;
   }
-  .envelope-toolbar {
-    @apply flex flex-wrap items-center justify-between gap-3 mb-3;
-  }
-  .envelope-title {
-    @apply text-muted text-size-13;
-    letter-spacing: 0.03em;
+  .envelope-footer {
+    @apply flex flex-wrap items-center justify-between gap-3;
   }
   .node-actions {
     @apply flex flex-wrap gap-1.5;
@@ -221,11 +213,13 @@
     @apply bg-action text-action-ink;
   }
   .envelope-surface {
-    @apply bg-surface-raised p-5;
+    @apply flex flex-col min-h-0 bg-surface-raised p-5;
+    flex: 1 1 auto;
     border-radius: calc(var(--spacing) * 4.5);
   }
   .envelope-plot {
-    @apply relative h-40;
+    @apply relative min-h-24;
+    flex: 1 1 10rem;
     background:
       repeating-linear-gradient(
         to right,
@@ -277,12 +271,9 @@
     outline-offset: 0;
   }
   .envelope-readout {
-    @apply flex flex-wrap items-center justify-between gap-2 mt-3 text-muted text-size-12 tabular-nums;
+    @apply font-medium text-ink text-size-13 tabular-nums;
   }
-  .envelope-readout strong {
-    @apply font-medium text-ink;
-  }
-  .envelope-readout strong span {
+  .envelope-readout span {
     @apply text-muted ms-2 font-normal;
   }
 </style>

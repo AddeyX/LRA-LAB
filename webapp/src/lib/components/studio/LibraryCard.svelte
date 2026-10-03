@@ -15,7 +15,7 @@
   } = $props();
 </script>
 
-<Card area="library" title="Library" stack>
+<Card area="library" title="Library" stack compact>
   <div class="library-body">{@render children()}</div>
   <button
     class="custom-pulse"
@@ -37,7 +37,9 @@
 <style>
   .library-body {
     flex: 1;
+    min-height: 0;
     padding-bottom: 16px;
+    overflow-y: auto;
   }
   .custom-pulse {
     display: grid;

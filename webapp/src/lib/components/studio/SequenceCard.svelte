@@ -37,7 +37,7 @@
   } = $props();
 </script>
 
-<Card area="sequence" title="Sequence">
+<Card area="sequence" title="Sequence" compact>
   {#snippet actions()}
     <div class="transport">
       <button
@@ -83,7 +83,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    height: 40px;
+    height: 36px;
     border: 0;
     border-radius: 10px;
     font: 400 15px/1 var(--font-sans);
@@ -107,7 +107,7 @@
     color: var(--color-ink);
   }
   .transport-stop {
-    width: 40px;
+    width: 36px;
     background: var(--color-surface-raised);
     color: var(--color-ink);
   }
