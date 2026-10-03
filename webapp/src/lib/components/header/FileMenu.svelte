@@ -1,6 +1,6 @@
 <script lang="ts" module>
   export type FileAction =
-    "new" | "open" | "import" | "save" | "export" | "code" | "settings";
+    "new" | "open" | "import" | "save" | "export" | "code" | "settings" | "changelog";
 </script>
 
 <script lang="ts">
@@ -97,6 +97,22 @@
                     >
                   </DropdownMenu.Item>
                 {/each}
+                <DropdownMenu.Item textValue="GitHub repository">
+                  {#snippet child({ props })}
+                    <a {...props} class="file-row"
+                      href="https://github.com/AddeyX/LRA-LAB"
+                      target="_blank" rel="noopener noreferrer">
+                      <span class="file-tile">{@render glyph("export")}</span>
+                      <span class="file-label"><RollText text="GitHub" /></span>
+                      <span class="file-hint">Repository ↗</span>
+                    </a>
+                  {/snippet}
+                </DropdownMenu.Item>
+                <DropdownMenu.Item class="file-row" onSelect={() => onaction("changelog")}>
+                  <span class="file-tile">{@render glyph("open")}</span>
+                  <span class="file-label"><RollText text="Changelog" /></span>
+                  <span class="file-hint">Build history</span>
+                </DropdownMenu.Item>
               </div>
               <div class="file-foot">
                 <DropdownMenu.Item

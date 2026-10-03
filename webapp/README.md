@@ -8,10 +8,10 @@ See the [definitive V1 scope](docs/v1-scope.md) for planned requirements and rel
 
 ## Stack and current setup
 
-- SvelteKit and Svelte 5 with TypeScript, built by Vite; `adapter-auto` handles the SvelteKit build.
+- SvelteKit and Svelte 5 with TypeScript, built by Vite; `adapter-static` writes a client-rendered static site to `build/`.
 - Tailwind CSS v4 through `@tailwindcss/vite`, with `portal-bits` UI components and DM Sans and Space Grotesk variable fonts.
-- Browser Web Serial for direct USB connection to matching ESP32-C3 firmware. No app server API or user accounts.
-- Browser local storage for the active draft. Data stays in that browser profile; there is no cloud sync or project library.
+- Browser Web Serial for direct USB connection to matching ESP32 firmware. No app server API or user accounts.
+- Browser local storage for the active draft. Data stays in that browser profile; named projects and pulse presets stay in that browser profile; there is no cloud sync.
 - Vitest for signature and serial tests, plus `svelte-check` for type and Svelte diagnostics.
 
 The editor currently supports built-in DRV2605L library 6 effects, custom pulses with editable amplitude keyframes, block timing and order controls, calibration status, preview and stop, and C++ export. Effects and pulses share one signature model. Browser validation, firmware validation, and generated C++ follow the same timing and amplitude rules. Blocks cannot overlap; gaps are allowed.
@@ -28,7 +28,7 @@ Timeline positions and widths multiply `--spacing-timeline-cell` by timing and z
 
 ## Run locally
 
-Requires Node.js, pnpm, and desktop Chrome or Edge with Web Serial support.
+Requires Node.js 22 and pnpm 11.0.4. Hardware connection requires desktop Chrome or Edge with Web Serial support on HTTPS or localhost; editing and simulated preview work without a board.
 
 ```sh
 cd webapp
@@ -40,11 +40,26 @@ Open the local URL printed by Vite (bound to `127.0.0.1`). To feel a signature, 
 
 The timeline has 125 cells across five seconds. Scroll horizontally to reach later cells and use **Zoom** to change cell width. With a beat focused, **Left/Right** moves it by 40 ms and **Delete/Backspace** removes it; arrow keys on a pulse resize handle change duration. Overlapping beats and edits past five seconds are rejected without changing the pattern. Pulse resizing scales the amplitude envelope while preserving point order.
 
-Editor use without a board is possible; hardware preview and calibration require the board. The active valid draft is saved in local storage and restored on reload. **File → New** starts a fresh signature and asks whether to save unsaved edits first. **Save** creates or updates a named browser project. **Save As** downloads a portable signature JSON file; **Open** loads a browser project or imports JSON from your computer. Browser projects stay in this browser profile, while JSON files can be moved elsewhere. Opening another project with unsaved edits asks before replacing them.
+Editor use and simulated audio/waveform preview work without a board; hardware preview and calibration require the board. The active valid draft is saved in local storage and restored on reload. **File → New** starts a fresh signature and asks whether to save unsaved edits first. **Save** creates or updates a named browser project. **Save As** downloads a portable signature JSON file; **Open** loads a browser project or imports JSON from your computer. Browser projects stay in this browser profile, while JSON files can be moved elsewhere. Opening another project with unsaved edits asks before replacing them.
 
 **File → Generate Code** opens a focused C++ view with Copy and Download `.cpp`. The existing **Take it to firmware** section also shows generated code. Generated code expects an initialized and calibrated `Adafruit_DRV2605` instance.
 
 **Setup** opens a step-by-step guide for hardware, wiring, firmware upload, browser preparation, connection, and calibration. Connect and Calibrate work directly in the guide. **File → Settings** shows the live firmware profile and calibration status when connected, alongside bundled firmware register defaults. The defaults are not live register readbacks, and this release does not change firmware settings.
+
+## Static hosting and build history
+
+[`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) follows the [Portal Bits build/artifact/deploy workflow](https://github.com/AddeyX/portal-bits/blob/594e946d71261c26cce619fbeb0d1d55bc4e59c8/.github/workflows/deploy.yml). Pushes to `main` (or manual workflow dispatch) install the frozen pnpm lockfile, run tests and type checks, build with Node 22 and `BASE_PATH=/<repository-name>`, upload `webapp/build/`, and deploy through the `github-pages` environment. Enable **Settings → Pages → Source → GitHub Actions** before the first deployment. Adding this workflow does not publish the current branch.
+
+For a repository-path build locally:
+
+```sh
+BASE_PATH=/LRA-LAB pnpm build
+BASE_PATH=/LRA-LAB pnpm exec vite preview --host 127.0.0.1
+```
+
+Open the preview's `/LRA-LAB/` URL. `BASE_PATH` defaults to an empty string for root hosting. SvelteKit prefixes bundled scripts, fonts, and styles; the home link uses the same base. The existing client-only layout remains (`ssr = false`) with prerendered entry HTML, so no production application server is required. Future firmware download links must use this base too; configured firmware assets do not exist yet.
+
+**File → GitHub** opens the repository. **File → Changelog** shows implemented build history; workflow preparation is labeled as preparation and unfinished V1 work is excluded.
 
 ## Code map
 

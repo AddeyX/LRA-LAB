@@ -1,6 +1,6 @@
 # LRA Lab V1 scope
 
-Status: definitive scope supplied by the user on 2026-10-02; implementation reviewed on 2026-10-03 against recent commits and current code through `64a96a5`. Checked, struck-through items are implemented in the current code. Unchecked items remain incomplete, partially implemented, or unverified against the full requirement. This update is documentation only.
+Status: definitive scope supplied by the user on 2026-10-02; updated on 2026-10-03 after the setup and static-hosting engineering pass. Checked, struck-through items are implemented in the current code. Unchecked items remain incomplete, partially implemented, or unverified against the full requirement. Workflow preparation is not a claim of live deployment.
 
 ## Product goal
 
@@ -35,10 +35,10 @@ This document is the source of truth for V1 product scope. Where earlier design 
 ### ESP32 setup
 
 - [x] ~~Do not add an ESP32 variant selector to the application.~~
-- [ ] Replace product and setup wording that requires the current C3/S3 configuration with instructions that let users choose their own ESP32 device.
-- [ ] Explain how users select their board in Arduino IDE or PlatformIO and configure valid I²C pins, upload settings, and the board's available serial connection.
-- [ ] Keep board-specific settings in firmware configuration and toolchain instructions rather than a hardcoded application variant choice.
-- [ ] Keep browser compatibility instructions accurate. ESP32 model names and Chrome/Edge Web Serial requirements describe different constraints; removing a board restriction does not remove the browser API requirement for hardware connection.
+- [x] ~~Replace product and setup wording that requires the current C3/S3 configuration with instructions that let users choose their own ESP32 device.~~
+- [x] ~~Explain how users select their board in Arduino IDE or PlatformIO and configure valid I²C pins, upload settings, and the board's available serial connection.~~
+- [x] ~~Keep board-specific settings in firmware configuration and toolchain instructions rather than a hardcoded application variant choice.~~
+- [x] ~~Keep browser compatibility instructions accurate. ESP32 model names and Chrome/Edge Web Serial requirements describe different constraints; removing a board restriction does not remove the browser API requirement for hardware connection.~~
 
 ### LRA values and application calculator
 
@@ -67,11 +67,11 @@ This document is the source of truth for V1 product scope. Where earlier design 
 
 Provide concise steps tailored to Arduino IDE:
 
-- [ ] Install the ESP32 board package and required libraries.
-- [ ] Download/open the sketch, or place the supplied source and configuration in the documented sketch structure.
-- [ ] Select the user's ESP32 board and upload port; apply only the serial/USB options that board needs.
-- [ ] Check wiring, LRA settings, and I²C pins, then upload.
-- [ ] Close Serial Monitor, connect through the web app, calibrate, and preview.
+- [x] ~~Install the ESP32 board package and required libraries.~~
+- [x] ~~Download/open the sketch, or place the supplied source and configuration in the documented sketch structure.~~
+- [x] ~~Select the user's ESP32 board and upload port; apply only the serial/USB options that board needs.~~
+- [x] ~~Check wiring, LRA settings, and I²C pins, then upload.~~
+- [x] ~~Close Serial Monitor, connect through the web app, calibrate, and preview.~~
 
 Arduino IDE users must not need PlatformIO-specific project files or commands. Provide a separate concise PlatformIO route for VS Code users, covering board configuration, dependencies, source placement, build, and upload.
 
@@ -94,8 +94,8 @@ Arduino IDE users must not need PlatformIO-specific project files or commands. P
 
 - [ ] Publish the site statically on GitHub Pages through GitHub Actions, following the public Portal Bits repository's deployment method.
 - [ ] Build a static site with the repository base path applied to routes, assets, and firmware downloads. No application server is required in production.
-- [ ] Add an easily accessible interface link to the [LRA Lab repository](https://github.com/AddeyX/LRA-LAB).
-- [ ] Provide a changelog accessible from the interface. Entries describe released changes; planned work must not be presented as shipped.
+- [x] ~~Add an easily accessible interface link to the [LRA Lab repository](https://github.com/AddeyX/LRA-LAB).~~
+- [x] ~~Provide a changelog accessible from the interface. Entries describe released changes; planned work must not be presented as shipped.~~
 
 ### Deployment reference
 
@@ -114,10 +114,10 @@ The LRA calculator configures downloadable firmware; this scope does not require
 ## Release checklist
 
 - [x] ~~Mini-map controls and reflects the main timeline viewport.~~
-- [ ] Hardware-neutral ESP32 setup replaces mandatory current-board wording without an application variant selector.
+- [x] ~~Hardware-neutral ESP32 setup replaces mandatory current-board wording without an application variant selector.~~
 - [ ] User-supplied LRA values produce validated firmware settings through the calculator.
 - [ ] Complete configured firmware downloads support Arduino IDE and PlatformIO upload paths.
-- [ ] Arduino IDE instructions are concise and independent of PlatformIO commands.
+- [x] ~~Arduino IDE instructions are concise and independent of PlatformIO commands.~~
 - [ ] Bento workspace fits supported viewports with stable section sizes and no document scrolling.
 - [ ] Dark/light themes, application logo, and properly styled board popover are complete.
 - [x] ~~Playback arm and audio/visual waveform displays work without a board.~~
@@ -131,8 +131,8 @@ These items describe release requirements. A checked item records code implement
 
 - `64a96a5` implements the mini-map, shared playback clock, stopped/completed/failed states, simulated audio, and waveform displays. See [timeline and playback interactions](./timeline-playback-interactions.md), `src/lib/HapticTimeline.svelte`, `src/lib/playback.svelte.ts`, `src/lib/simulation.ts`, and `src/lib/components/header/PlaybackIsland.svelte`.
 - `src/routes/+page.svelte` retains signature validation, calibrated-board playback, calibration, disconnect handling, and Stop. Hardware behavior has not been physically retested in this review.
-- No application ESP32 variant selector exists. However, `src/lib/SetupView.svelte` still requires ESP32-C3 wording, fixed GPIO4/GPIO5 wiring, and the 170 Hz firmware profile. Hardware-neutral setup and accurate hosted-site browser guidance remain open.
-- No LRA calculator or complete configured firmware download exists. Setup documents PlatformIO only; `src/lib/export.ts` and the code dialog retain signature-specific C++ export.
+- `src/lib/SetupView.svelte` now uses hardware-neutral ESP32 wording and configurable pin names, explains Arduino IDE and PlatformIO board/serial choices, and permits HTTPS or localhost for Web Serial. No application variant selector was added. `firmware/README.md` documents source configuration; the bundled C3 / 170 Hz profile remains an example requiring actuator-specific review.
+- No LRA calculator or complete configured firmware download exists. Arduino IDE now has an independent empty-sketch + `main.cpp` route and dependencies; PlatformIO has separate board/configuration/build instructions. These routes are documented but have not been newly compiled or physically tested. `src/lib/export.ts` and the code dialog retain signature-specific C++ export.
 - `ad46721`, `103041b`, and `354a008` improve the bento layout, board popover, and viewport fit. Responsive stacking and content-sized rows remain; the complete stable-size/page-fit/accessibility requirements have not been verified across documented supported viewports. These requirements stay open.
 - `src/lib/components/header/LabLogo.svelte` provides an application logo, and `src/app.html` includes a favicon. Complete light/dark theme coverage and matching application icon assets remain open. The board popover has dedicated styling, but clipping and all connection states were not browser-verified in this review.
-- `webapp/svelte.config.js` still uses `adapter-auto`; there is no GitHub Pages workflow, static base-path configuration, complete firmware asset download, interface repository link, or interface changelog.
+- `webapp/svelte.config.js` uses `adapter-static` with `BASE_PATH`, and `.github/workflows/deploy.yml` prepares the Node 22 / pnpm build, artifact upload, and dependent Pages deploy jobs. File menu links to GitHub and opens an implemented-build changelog. 42 tests, a clean Svelte check, a `/LRA-LAB` static build, browser setup/changelog interactions, and 15 linked static asset responses are verified; actual main-branch deployment and complete firmware download assets remain open. Repository administrators must select GitHub Actions as the Pages source.

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { resolve } from "$app/paths";
   import LabLogo from "./LabLogo.svelte";
 
   let {
@@ -25,7 +26,7 @@
   <div class="island island-left" bind:this={left}>
     <a
       class="island-home"
-      href="/"
+      href={resolve("/")}
       aria-label="LRA Lab studio"
       onclick={(event) => {
         event.preventDefault();

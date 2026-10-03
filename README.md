@@ -1,6 +1,6 @@
 # LRA Lab
 
-LRA Lab is a local workspace for designing haptic signatures and feeling them on an LRA (linear resonant actuator). Its long-term direction is a hands-on editor with the immediacy of a music production tool: compose a pattern, adjust its timing and intensity, and preview it on hardware. The current release is a focused single-track studio backed by ESP32-C3 firmware and a small serial protocol.
+LRA Lab is a local workspace for designing haptic signatures and feeling them on an LRA (linear resonant actuator). Its long-term direction is a hands-on editor with the immediacy of a music production tool: compose a pattern, adjust its timing and intensity, and preview it on hardware. The current release is a focused single-track studio backed by ESP32 firmware and a small serial protocol.
 
 ## V1 scope
 
@@ -10,8 +10,8 @@ The [definitive V1 scope](webapp/docs/v1-scope.md) records planned workspace, pl
 
 ```text
 Web app (compose and validate)
-    → Web Serial, USB CDC, JSON messages
-ESP32-C3 firmware (validate and schedule playback)
+    → Web Serial, serial port, JSON messages
+ESP32 firmware (validate and schedule playback)
     → I²C
 DRV2605L haptic driver → LRA
 ```
@@ -21,7 +21,7 @@ The browser sends a complete signature to the board. Firmware stores it in RAM a
 | Directory | Purpose | Stack |
 | --- | --- | --- |
 | [`webapp/`](webapp/README.md) | Signature editor, device connection, live preview, C++ export | SvelteKit, Svelte 5, TypeScript, Vite, Web Serial |
-| [`firmware/`](firmware/README.md) | Device protocol, validation, calibration, playback | ESP32-C3, Arduino, PlatformIO, DRV2605L, ArduinoJson |
+| [`firmware/`](firmware/README.md) | Device protocol, validation, calibration, playback | ESP32, Arduino, PlatformIO, DRV2605L, ArduinoJson |
 
 ## Current capabilities
 
@@ -30,7 +30,7 @@ The browser sends a complete signature to the board. Firmware stores it in RAM a
 - Keep the current draft in browser local storage, save named browser projects, import/export signature JSON, and copy or download generated Arduino C++.
 - Reject invalid signatures on both sides of the serial connection. Firmware enforces a five-second playback limit.
 
-This setup runs locally. It has no account, cloud storage, or server API. Current hardware profile targets one ESP32-C3, one DRV2605L, and a 170 Hz LRA; see [`firmware/README.md`](firmware/README.md) before connecting an actuator.
+The app builds as a static site and runs locally or on HTTPS. It has no account, cloud storage, or server API. Choose your ESP32 board and firmware pins in Arduino IDE or PlatformIO. The included C3 / 170 Hz configuration is an example requiring actuator-specific review; see [`firmware/README.md`](firmware/README.md) before connecting an actuator.
 
 ## Start
 
@@ -45,4 +45,4 @@ This setup runs locally. It has no account, cloud storage, or server API. Curren
 
 3. Open the displayed local address in desktop Chrome or Edge. Close any serial monitor, select **Connect board**, then **Calibrate**. Add effects or a custom pulse and select **Preview**.
 
-The app requires a Web Serial capable browser on localhost. See [`webapp/README.md`](webapp/README.md) for editor details, commands, and checks. See [`firmware/README.md`](firmware/README.md) for wiring, board configuration, and protocol details.
+Hardware connection requires desktop Chrome or Edge with Web Serial on HTTPS or localhost. Offline editing and simulated preview do not require Web Serial. See [`webapp/README.md`](webapp/README.md) for editor details, commands, and checks. See [`firmware/README.md`](firmware/README.md) for wiring, board configuration, and protocol details.

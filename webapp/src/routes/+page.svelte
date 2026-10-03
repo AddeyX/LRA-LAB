@@ -14,6 +14,7 @@
   import ReplaceProjectDialog from "$lib/components/studio/dialogs/ReplaceProjectDialog.svelte";
   import CodeDialog from "$lib/components/studio/dialogs/CodeDialog.svelte";
   import SettingsDialog from "$lib/components/studio/dialogs/SettingsDialog.svelte";
+  import ChangelogDialog from "$lib/components/studio/dialogs/ChangelogDialog.svelte";
   import {
     clonePulse,
     defaultPulse,
@@ -70,6 +71,7 @@
   let projectsDialog = $state(false);
   let codeDialog = $state(false);
   let settingsDialog = $state(false);
+  let changelogDialog = $state(false);
   let replaceDialog = $state(false);
   let projectName = $state("");
   let currentProjectId = $state<string | null>(null);
@@ -168,7 +170,8 @@
       else if (action === "save") save();
       else if (action === "export") saveAs();
       else if (action === "code") codeDialog = true;
-      else settingsDialog = true;
+      else if (action === "settings") settingsDialog = true;
+      else if (action === "changelog") changelogDialog = true;
     });
   }
   function save() {
@@ -682,6 +685,7 @@
   {firmwareProfile}
   onclose={() => (settingsDialog = false)}
 />
+<ChangelogDialog open={changelogDialog} onclose={() => (changelogDialog = false)} />
 
 <style>
   .lab {
