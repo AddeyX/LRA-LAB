@@ -38,9 +38,13 @@
     onedit: (block: Block) => void;
     onremove: (id: string) => void;
   } = $props();
+  let visibleRange = $state("0.00–5.00 s");
 </script>
 
 <Card area="sequence" title="Sequence" compact>
+  {#snippet titleDetail()}
+    <span class="minimap-readout" aria-hidden="true">{visibleRange}</span>
+  {/snippet}
   {#snippet actions()}
     <div class="transport">
       <button
@@ -74,10 +78,19 @@
     {onedit}
     {onremove}
     {hasPreset}
+    onviewportchange={(range) => (visibleRange = range)}
   />
 </Card>
 
 <style>
+  .minimap-readout {
+    flex-shrink: 0;
+    color: var(--color-muted);
+    font: 400 11px/1.4 var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
   .transport {
     display: flex;
     gap: 6px;

@@ -10,6 +10,7 @@
     max?: number;
     step?: number;
     size?: ScrubFieldSize;
+    borderRadius?: string;
     sensitivity?: number;
     rubberReach?: number;
     returnDuration?: number;
@@ -80,6 +81,7 @@
     max = 100,
     step = 1,
     size = "md",
+    borderRadius,
     sensitivity = 2,
     rubberReach = 8,
     returnDuration = 300,
@@ -398,7 +400,7 @@
   style:--sf-chip={chipColor}
   style:--sf-h={preset.height}
   style:--sf-fs={preset.font}
-  style:--sf-r={preset.radius}
+  style:--sf-r={borderRadius ?? preset.radius}
   style:--sf-w={preset.width}
   onpointerdown={handlePointerDown}
   onpointermove={handlePointerMove}
