@@ -8,6 +8,7 @@
     stack = false,
     compact = false,
     actions,
+    titleDetail,
     children,
     ...rest
   }: {
@@ -16,6 +17,7 @@
     stack?: boolean;
     compact?: boolean;
     actions?: Snippet;
+    titleDetail?: Snippet;
     children: Snippet;
   } & HTMLAttributes<HTMLElement> = $props();
   const titleId = $props.id();
@@ -31,7 +33,10 @@
 >
   {#if title}
     <div class="card-head">
-      <h2 id={titleId}>{title}</h2>
+      <div class="card-heading">
+        <h2 id={titleId}>{title}</h2>
+        {#if titleDetail}{@render titleDetail()}{/if}
+      </div>
       {#if actions}{@render actions()}{/if}
     </div>
   {/if}
@@ -57,6 +62,13 @@
     gap: 16px;
     min-height: 40px;
     margin-bottom: 16px;
+  }
+  .card-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    min-width: 0;
   }
   .card-head h2 {
     margin: 0;

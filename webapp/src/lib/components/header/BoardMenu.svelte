@@ -7,6 +7,7 @@
     anchor,
     connected,
     calibrated,
+    hardwareAllowed,
     calibrating,
     busy,
     playing,
@@ -19,6 +20,7 @@
     anchor: HTMLElement | null;
     connected: boolean;
     calibrated: boolean;
+    hardwareAllowed: boolean;
     calibrating: boolean;
     busy: boolean;
     playing: boolean;
@@ -70,7 +72,7 @@
                   <button
                     class="board-primary"
                     onclick={oncalibrate}
-                    disabled={busy || playing}
+                    disabled={busy || playing || !hardwareAllowed}
                     >{calibrating
                       ? "Calibrating…"
                       : calibrated

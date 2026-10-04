@@ -18,6 +18,8 @@ DRV2605L haptic driver → LRA
 
 The browser sends a complete signature to the board. Firmware stores it in RAM and handles playback timing locally, so a browser scheduling delay does not shape the haptic output. The app can also generate Arduino C++ for using a signature in another firmware project.
 
+[Playback duration and storage calculations](firmware/docs/duration-and-storage.md) explain potential extensions beyond five seconds and the flash/RAM tradeoffs of dense 10 ms patterns.
+
 | Directory | Purpose | Stack |
 | --- | --- | --- |
 | [`webapp/`](webapp/README.md) | Signature editor, device connection, live preview, C++ export | SvelteKit, Svelte 5, TypeScript, Vite, Web Serial |

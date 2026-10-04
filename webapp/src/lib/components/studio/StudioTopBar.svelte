@@ -18,6 +18,7 @@
     beats,
     connected,
     calibrated,
+    hardwareAllowed,
     calibrating,
     busy,
     playing,
@@ -40,6 +41,7 @@
     beats: number;
     connected: boolean;
     calibrated: boolean;
+    hardwareAllowed: boolean;
     calibrating: boolean;
     busy: boolean;
     playing: boolean;
@@ -67,6 +69,7 @@
       {anchor}
       {connected}
       {calibrated}
+      {hardwareAllowed}
       {calibrating}
       {busy}
       {playing}

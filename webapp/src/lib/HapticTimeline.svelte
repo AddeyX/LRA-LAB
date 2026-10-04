@@ -16,6 +16,7 @@
     onedit,
     onremove,
     hasPreset,
+    onviewportchange,
   } = $props<{
     blocks: Block[];
     selectedId: string | null;
@@ -26,6 +27,7 @@
     onedit: (block: Block) => void;
     onremove: (id: string) => void;
     hasPreset: (id: string) => boolean;
+    onviewportchange?: (range: string) => void;
   }>();
 
   let lane: HTMLDivElement;
@@ -56,6 +58,9 @@
   );
   const pct = (ms: number) => `${(ms / MAX_MS) * 100}%`;
   const seconds = (ms: number) => (ms / 1000).toFixed(2);
+  $effect(() => {
+    onviewportchange?.(`${seconds(viewStartMs)}–${seconds(viewStartMs + viewSpanMs)} s`);
+  });
   function reveal(startMs: number, behavior: ScrollBehavior = "auto") {
     viewport.scrollTo({
       left: (Math.max(0, startMs) / MAX_MS) * viewport.scrollWidth,
@@ -252,22 +257,7 @@
 <div class="sequencer-toolbar flex-wrap">
   <span class="snap-label">Snap <strong>40 ms</strong></span>
   <span class="timeline-hint">Click to place · drag to move</span>
-  <div class="zoom-control">
-    <ScrubField
-      label="Zoom"
-      suffix="%"
-      value={zoom}
-      defaultValue={100}
-      min={60}
-      max={160}
-      step={5}
-      size="sm"
-      accent="var(--color-accent-bright)"
-      chipColor="var(--color-surface-raised)"
-      showFill={false}
-      onChange={(value) => (zoom = value)}
-    />
-  </div>
+
 </div>
 <!-- Timeline coordinates and drag math remain physical left-to-right in RTL layouts. -->
 <div
@@ -465,9 +455,23 @@
       aria-hidden="true"
     ></span>
   </div>
-  <span class="minimap-readout" aria-hidden="true"
-    >{seconds(viewStartMs)}–{seconds(viewStartMs + viewSpanMs)} s</span
-  >
+  <div class="zoom-control">
+    <ScrubField
+      label="Zoom"
+      suffix="%"
+      value={zoom}
+      defaultValue={100}
+      min={60}
+      max={160}
+      step={5}
+      size="sm"
+      borderRadius="var(--radius-control)"
+      accent="var(--color-accent-bright)"
+      chipColor="var(--color-surface-raised)"
+      showFill={false}
+      onChange={(value) => (zoom = value)}
+    />
+  </div>
 </div>
 
 <style lang="postcss">
@@ -492,7 +496,7 @@
     letter-spacing: 0.03em;
   }
   .zoom-control {
-    @apply ms-auto flex gap-2 items-center text-muted;
+    @apply shrink-0 flex gap-2 items-center text-muted;
   }
   .sequencer-body {
     @apply grid grid-cols-1 min-w-0 overflow-hidden bg-surface-raised;
@@ -733,12 +737,6 @@
   }
   .minimap:not(.scrubbing):not(:focus-visible) .minimap-window {
     border-color: color-mix(in srgb, var(--color-ink) 55%, transparent);
-  }
-  .minimap-readout {
-    @apply shrink-0 text-size-11 text-muted tabular-nums;
-    min-width: calc(var(--spacing) * 19);
-    text-align: end;
-    letter-spacing: 0.03em;
   }
   @variant max-studio {
     .timeline-hint {

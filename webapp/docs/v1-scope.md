@@ -1,6 +1,6 @@
 # LRA Lab V1 scope
 
-Status: definitive scope supplied by the user on 2026-10-02; updated on 2026-10-03 after the setup and static-hosting engineering pass. Checked, struck-through items are implemented in the current code. Unchecked items remain incomplete, partially implemented, or unverified against the full requirement. Workflow preparation is not a claim of live deployment.
+Status: definitive scope supplied by the user on 2026-10-02; updated on 2026-10-03 after the setup and static-hosting engineering pass, and on 2026-10-04 after the setup guide redesign. Checked, struck-through items are implemented in the current code. Unchecked items remain incomplete, partially implemented, or unverified against the full requirement. Workflow preparation is not a claim of live deployment.
 
 ## Product goal
 
@@ -42,25 +42,25 @@ This document is the source of truth for V1 product scope. Where earlier design 
 
 ### LRA values and application calculator
 
-- [ ] Support user-supplied LRAs rather than requiring the current 170 Hz actuator profile.
-- [ ] Provide an application calculator that converts the user's LRA specifications into firmware settings.
-- [ ] Collect rated voltage, permitted maximum drive/clamp voltage, and nominal resonant frequency, plus any additional driver parameters needed by the verified conversion method.
-- [ ] Label units and voltage conventions explicitly, including RMS versus peak where relevant. Explain which values users should obtain from their actuator documentation.
-- [ ] Show entered specifications and derived firmware constants/register values, including voltage and drive-time settings.
-- [ ] Validate missing, invalid, and unsupported values before generating firmware. Do not silently substitute the current fixed actuator defaults.
-- [ ] Use the same derived configuration in the calculator output and downloadable firmware. Generated code must not retain contradictory hardcoded settings.
-- [ ] Document conversion formulas, rounding, valid ranges, and driver assumptions against the DRV2605L documentation during implementation.
-- [ ] Treat configuration and calibration as separate steps. A calculated profile does not mean physical calibration has passed.
+- [x] ~~Support user-supplied LRAs rather than requiring the current 170 Hz actuator profile.~~
+- [x] ~~Provide an application calculator that converts the user's LRA specifications into firmware settings.~~
+- [x] ~~Collect rated voltage, permitted maximum drive/clamp voltage, and nominal resonant frequency, plus any additional driver parameters needed by the verified conversion method.~~
+- [x] ~~Label units and voltage conventions explicitly, including RMS versus peak where relevant. Explain which values users should obtain from their actuator documentation.~~
+- [x] ~~Show entered specifications and derived firmware constants/register values, including voltage and drive-time settings.~~
+- [x] ~~Validate missing, invalid, and unsupported values before generating firmware. Do not silently substitute the current fixed actuator defaults.~~
+- [x] ~~Use the same derived configuration in the calculator output and downloadable firmware. Generated code must not retain contradictory hardcoded settings.~~
+- [x] ~~Document conversion formulas, rounding, valid ranges, and driver assumptions against the DRV2605L documentation during implementation.~~
+- [x] ~~Treat configuration and calibration as separate steps. A calculated profile does not mean physical calibration has passed.~~
 
-- [ ] Acceptance: users can enter their own LRA specifications and board pins, review calculated settings, and obtain firmware containing those settings. Current C3/S3 and 170 Hz defaults are not mandatory product choices.
+- [x] ~~Acceptance: users can enter their own LRA specifications and board pins, review calculated settings, and obtain firmware containing those settings. Current C3/S3 and 170 Hz defaults are not mandatory product choices.~~
 
 ## 4. Firmware downloads and upload instructions
 
-- [ ] Provide a downloadable, configurable copy of the application firmware, not only the existing signature data/playback helper export.
-- [ ] Supply an Arduino sketch (`.ino`) or main C++ source (`main.cpp`) appropriate to the upload path. Both Arduino IDE and PlatformIO users must have a documented usable route; identical packaging is not required.
-- [ ] Include protocol handling, driver initialization, user-selected configuration, calibration, and signature playback in the firmware source.
-- [ ] State required libraries, compatible dependency versions, configuration placement, and how the download fits into an existing project. Include supporting files required to build it.
-- [ ] Keep firmware downloads available from the statically hosted site.
+- [x] ~~Provide a downloadable, configurable copy of the application firmware, not only the existing signature data/playback helper export.~~
+- [x] ~~Supply an Arduino sketch (`.ino`) or main C++ source (`main.cpp`) appropriate to the upload path. Both Arduino IDE and PlatformIO users must have a documented usable route; identical packaging is not required.~~
+- [x] ~~Include protocol handling, driver initialization, user-selected configuration, calibration, and signature playback in the firmware source.~~
+- [x] ~~State required libraries, compatible dependency versions, configuration placement, and how the download fits into an existing project. Include supporting files required to build it.~~
+- [x] ~~Keep firmware downloads available from the statically hosted site.~~
 - [x] ~~Preserve signature-specific C++ export alongside complete firmware download.~~
 
 ### Lightweight Arduino IDE route
@@ -75,7 +75,7 @@ Provide concise steps tailored to Arduino IDE:
 
 Arduino IDE users must not need PlatformIO-specific project files or commands. Provide a separate concise PlatformIO route for VS Code users, covering board configuration, dependencies, source placement, build, and upload.
 
-- [ ] Acceptance: each route supplies enough source, configuration, and instructions to build and flash the selected ESP32, then connect and calibrate through LRA Lab.
+- [x] ~~Acceptance: each route supplies enough source, configuration, and instructions to build and flash the selected ESP32, then connect and calibrate through LRA Lab.~~
 
 ## 5. Workspace layout, themes, and identity
 
@@ -115,8 +115,8 @@ The LRA calculator configures downloadable firmware; this scope does not require
 
 - [x] ~~Mini-map controls and reflects the main timeline viewport.~~
 - [x] ~~Hardware-neutral ESP32 setup replaces mandatory current-board wording without an application variant selector.~~
-- [ ] User-supplied LRA values produce validated firmware settings through the calculator.
-- [ ] Complete configured firmware downloads support Arduino IDE and PlatformIO upload paths.
+- [x] ~~User-supplied LRA values produce validated firmware settings through the calculator.~~
+- [x] ~~Complete configured firmware downloads support Arduino IDE and PlatformIO upload paths.~~
 - [x] ~~Arduino IDE instructions are concise and independent of PlatformIO commands.~~
 - [ ] Bento workspace fits supported viewports with stable section sizes and no document scrolling.
 - [ ] Dark/light themes, application logo, and properly styled board popover are complete.
@@ -131,8 +131,8 @@ These items describe release requirements. A checked item records code implement
 
 - `64a96a5` implements the mini-map, shared playback clock, stopped/completed/failed states, simulated audio, and waveform displays. See [timeline and playback interactions](./timeline-playback-interactions.md), `src/lib/HapticTimeline.svelte`, `src/lib/playback.svelte.ts`, `src/lib/simulation.ts`, and `src/lib/components/header/PlaybackIsland.svelte`.
 - `src/routes/+page.svelte` retains signature validation, calibrated-board playback, calibration, disconnect handling, and Stop. Hardware behavior has not been physically retested in this review.
-- `src/lib/SetupView.svelte` now uses hardware-neutral ESP32 wording and configurable pin names, explains Arduino IDE and PlatformIO board/serial choices, and permits HTTPS or localhost for Web Serial. No application variant selector was added. `firmware/README.md` documents source configuration; the bundled C3 / 170 Hz profile remains an example requiring actuator-specific review.
-- No LRA calculator or complete configured firmware download exists. Arduino IDE now has an independent empty-sketch + `main.cpp` route and dependencies; PlatformIO has separate board/configuration/build instructions. These routes are documented but have not been newly compiled or physically tested. `src/lib/export.ts` and the code dialog retain signature-specific C++ export.
+- The setup guide (`src/lib/components/setup/`) uses hardware-neutral ESP32 wording and configurable pin names, explains Arduino IDE and PlatformIO board/serial choices, and permits HTTPS or localhost for Web Serial. No application variant selector was added. `firmware/README.md` documents source configuration; the bundled C3 / 170 Hz profile remains an example requiring actuator-specific review.
+- The setup guide redesign (2026-10-04) adds the LRA calculator (`src/lib/lra-profile.ts`, DRV2605L equations 5 and 9 and the Control1 drive time; formulas in `firmware/README.md`) and configured firmware downloads (`src/lib/firmware.ts`). Downloads patch the repository's own `firmware/src/main.cpp` and `platformio.ini` in the browser, so there is one firmware source; a missing template constant fails the build instead of shipping defaults. Arduino IDE gets a zipped `LraLab/` sketch folder, PlatformIO gets a zipped project with the user's board ID and native-USB flags, and both can download `main.cpp` alone. The example values reproduce the bundled firmware byte for byte. A generated 235 Hz / GPIO8–9 project compiled with PlatformIO for `esp32-c3-devkitm-1` (native USB) and `esp32dev` (no USB flags). The Arduino IDE route and physical actuator behavior have not been compiled or tested on hardware in this review. `src/lib/export.ts` and the code dialog retain signature-specific C++ export.
 - `ad46721`, `103041b`, and `354a008` improve the bento layout, board popover, and viewport fit. Responsive stacking and content-sized rows remain; the complete stable-size/page-fit/accessibility requirements have not been verified across documented supported viewports. These requirements stay open.
 - `src/lib/components/header/LabLogo.svelte` provides an application logo, and `src/app.html` includes a favicon. Complete light/dark theme coverage and matching application icon assets remain open. The board popover has dedicated styling, but clipping and all connection states were not browser-verified in this review.
 - `webapp/svelte.config.js` uses `adapter-static` with `BASE_PATH`, and `.github/workflows/deploy.yml` prepares the Node 22 / pnpm build, artifact upload, and dependent Pages deploy jobs. File menu links to GitHub and opens an implemented-build changelog. 42 tests, a clean Svelte check, a `/LRA-LAB` static build, browser setup/changelog interactions, and 15 linked static asset responses are verified; actual main-branch deployment and complete firmware download assets remain open. Repository administrators must select GitHub Actions as the Pages source.

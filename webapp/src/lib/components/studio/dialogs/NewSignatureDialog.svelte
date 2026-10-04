@@ -24,7 +24,7 @@
     <p>Save these changes before clearing the canvas?</p>
     <div class="dialog-actions">
       <button onclick={onclose}>Cancel</button>
-      <button onclick={ondiscard}>Don't Save</button>
+      <button class="dialog-danger" onclick={ondiscard}>Don't Save</button>
       <button class="dialog-primary" onclick={onsave}>Save changes</button>
     </div>
   </div>
