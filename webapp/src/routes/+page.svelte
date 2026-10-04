@@ -488,6 +488,36 @@
       error = cause instanceof Error ? cause.message : "Stop failed.";
     }
   }
+  function playbackShortcut(event: KeyboardEvent) {
+    if (
+      event.code !== "Space" ||
+      event.defaultPrevented ||
+      event.isComposing ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      view !== "studio" ||
+      document.querySelector('[role="dialog"], [role="alertdialog"]')
+    )
+      return;
+
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      (target.isContentEditable ||
+        target.closest(
+          'input, textarea, select, button, a[href], [role="button"], [role="menu"], [role="menuitem"], [role="slider"], [role="textbox"]',
+        ))
+    )
+      return;
+
+    if (!playing && !canPreview) return;
+    event.preventDefault();
+    if (event.repeat) return;
+    if (playing) void stop();
+    else void preview();
+  }
   onMount(() => {
     try {
       projects = readProjects(localStorage);
@@ -523,6 +553,8 @@
     };
   });
 </script>
+
+<svelte:window onkeydown={playbackShortcut} />
 
 <svelte:head
   ><title>LRA LAB</title><meta
