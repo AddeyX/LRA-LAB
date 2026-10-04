@@ -73,3 +73,53 @@ describe("SetupState", () => {
 it("ships a valid test pattern for the first buzz", () => {
   expect(validateSignature(BUZZ_SIGNATURE)).toBeNull();
 });
+
+
+describe("configuration-bound completion", () => {
+  const configured = () => {
+    const setup = new SetupState();
+    setup.lra = { ratedVrms: 1.2, maxVoltage: 1.68, maxConvention: "peak", resonantHz: 170 };
+    setup.pins = { sda: 4, scl: 5 };
+    setup.downloaded = true;
+    setup.felt = true;
+    setup.completed = true;
+    return setup;
+  };
+
+  it.each([
+    ["rated voltage", (s: SetupState) => { s.lra.ratedVrms = 2; }],
+    ["clamp voltage", (s: SetupState) => { s.lra.maxVoltage = 3; }],
+    ["voltage convention", (s: SetupState) => { s.lra.maxConvention = "rms"; }],
+    ["resonance", (s: SetupState) => { s.lra.resonantHz = 235; }],
+    ["SDA", (s: SetupState) => { s.pins.sda = 8; }],
+    ["SCL", (s: SetupState) => { s.pins.scl = 9; }],
+    ["route", (s: SetupState) => { s.route = "platformio"; }],
+    ["board", (s: SetupState) => { s.boardId = "esp32dev"; }],
+    ["USB", (s: SetupState) => { s.nativeUsb = false; }],
+  ])("invalidates downloaded and dependent progress after changing %s", (_, change) => {
+    const setup = configured();
+    expect(setup.downloaded).toBe(true);
+    change(setup);
+    expect(setup.downloaded).toBe(false);
+    expect(setup.felt).toBe(false);
+    expect(setup.completed).toBe(false);
+    const storage = memory();
+    setup.save(storage);
+    const restored = new SetupState();
+    restored.load(storage);
+    expect(restored.downloaded).toBe(false);
+    setup.downloaded = true;
+    expect(setup.downloaded).toBe(true);
+    expect(setup.felt).toBe(false);
+  });
+
+  it("does not trust legacy completion booleans without a configuration snapshot", () => {
+    const storage = memory();
+    storage.setItem("lra-lab-setup-v1", JSON.stringify({ downloaded: true, felt: true, completed: true }));
+    const restored = new SetupState();
+    restored.load(storage);
+    expect(restored.downloaded).toBe(false);
+    expect(restored.felt).toBe(false);
+    expect(restored.completed).toBe(false);
+  });
+});

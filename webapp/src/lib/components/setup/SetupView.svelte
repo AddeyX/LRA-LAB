@@ -106,12 +106,6 @@
   $effect(() => {
     setup.save(localStorage);
   });
-  $effect(() => {
-    if (calibrated && !setup.completed) {
-      setup.completed = true;
-      setup.preferredMode = "docs";
-    }
-  });
 
   function sectionEl(index: number) {
     return scroller?.querySelector<HTMLElement>(`#setup-${STEPS[index].id}`);
@@ -190,7 +184,11 @@
     lastAction = "buzz";
     buzzPending = true;
     try {
-      if (await onbuzz()) setup.felt = true;
+      if (await onbuzz()) {
+        setup.felt = true;
+        setup.completed = true;
+        setup.preferredMode = "docs";
+      }
     } finally {
       buzzPending = false;
     }

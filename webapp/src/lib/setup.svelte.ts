@@ -1,5 +1,7 @@
 import { DEFAULT_BOARD_ID, type FirmwareRoute } from "./firmware";
 import {
+  deriveLra,
+  derivePins,
   emptyLra,
   emptyPins,
   type LraInputs,
@@ -46,9 +48,9 @@ type Saved = {
   route: FirmwareRoute;
   nativeUsb: boolean;
   boardId: string;
-  downloaded: boolean;
-  felt: boolean;
-  completed: boolean;
+  downloadedConfig: string | null;
+  feltConfig: string | null;
+  completedConfig: string | null;
   preferredMode: SetupMode | null;
   rigOpen: boolean;
 };
@@ -63,9 +65,35 @@ export class SetupState {
   route = $state<FirmwareRoute>("arduino");
   nativeUsb = $state(true);
   boardId = $state(DEFAULT_BOARD_ID);
-  downloaded = $state(false);
-  felt = $state(false);
-  completed = $state(false);
+  private downloadedConfig = $state<string | null>(null);
+  private feltConfig = $state<string | null>(null);
+  private completedConfig = $state<string | null>(null);
+
+  get configKey(): string | null {
+    if (!deriveLra(this.lra).profile || !derivePins(this.pins).pins ||
+      (this.route === "platformio" && !/^[\w.-]+$/.test(this.boardId.trim()))) return null;
+    return JSON.stringify([1, this.lra.ratedVrms, this.lra.maxVoltage,
+      this.lra.maxConvention, this.lra.resonantHz, this.pins.sda, this.pins.scl,
+      this.route, this.boardId.trim(), this.nativeUsb]);
+  }
+  get downloaded() {
+    return this.configKey !== null && this.downloadedConfig === this.configKey;
+  }
+  set downloaded(value: boolean) {
+    this.downloadedConfig = value ? this.configKey : null;
+  }
+  get felt() {
+    return this.configKey !== null && this.feltConfig === this.configKey;
+  }
+  set felt(value: boolean) {
+    this.feltConfig = value ? this.configKey : null;
+  }
+  get completed() {
+    return this.configKey !== null && this.completedConfig === this.configKey;
+  }
+  set completed(value: boolean) {
+    this.completedConfig = value ? this.configKey : null;
+  }
   preferredMode = $state<SetupMode | null>(null);
   rigOpen = $state(true);
 
@@ -93,9 +121,9 @@ export class SetupState {
     if (typeof saved.nativeUsb === "boolean") this.nativeUsb = saved.nativeUsb;
     if (typeof saved.boardId === "string" && saved.boardId.trim())
       this.boardId = saved.boardId;
-    this.downloaded = saved.downloaded === true;
-    this.felt = saved.felt === true;
-    this.completed = saved.completed === true;
+    this.downloadedConfig = typeof saved.downloadedConfig === "string" ? saved.downloadedConfig : null;
+    this.feltConfig = typeof saved.feltConfig === "string" ? saved.feltConfig : null;
+    this.completedConfig = typeof saved.completedConfig === "string" ? saved.completedConfig : null;
     if (saved.preferredMode === "guided" || saved.preferredMode === "docs")
       this.preferredMode = saved.preferredMode;
     if (typeof saved.rigOpen === "boolean") this.rigOpen = saved.rigOpen;
@@ -109,9 +137,9 @@ export class SetupState {
       route: this.route,
       nativeUsb: this.nativeUsb,
       boardId: this.boardId,
-      downloaded: this.downloaded,
-      felt: this.felt,
-      completed: this.completed,
+      downloadedConfig: this.downloadedConfig,
+      feltConfig: this.feltConfig,
+      completedConfig: this.completedConfig,
       preferredMode: this.preferredMode,
       rigOpen: this.rigOpen,
     };
