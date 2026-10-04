@@ -58,6 +58,8 @@ Firmware checks DRV2605L overcurrent and overtemperature status during playback 
 
 ## Code and verification
 
+See [playback duration and storage calculations](docs/duration-and-storage.md) for potential duration extensions, generated C++ flash estimates, and the storage cost of 60 seconds of independent 10 ms amplitude samples. These calculations do not change the current five-second limit.
+
 [`src/main.cpp`](src/main.cpp) contains protocol handling, signature validation, calibration, and the playback loop. Build with `pio run`. Real actuator feel, calibration, USB handshake, and 10 ms timing require testing on connected hardware; compilation alone does not verify them.
 
 See [root README](../README.md) for project overview and [web app README](../webapp/README.md) for the editor workflow.
