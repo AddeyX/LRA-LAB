@@ -517,12 +517,18 @@
     error = "";
     busy = true;
     try {
-      if (await device.play(BUZZ_SIGNATURE)) {
-        playback.run();
-        notice = "Playing test signature on board…";
+      if (await setup.runTest(() => device.play(BUZZ_SIGNATURE, {
+        waitForDone: true,
+        onPlaying: () => {
+          playback.run();
+          notice = "Playing test signature on board…";
+        },
+      }))) {
+        notice = "Test signature completed.";
         return true;
       }
-      playback.stop();
+      playback.stop("failed");
+      if (!error) error = "Test signature did not complete. Run it again when the board is ready.";
       return false;
     } catch (cause) {
       playback.stop("failed");

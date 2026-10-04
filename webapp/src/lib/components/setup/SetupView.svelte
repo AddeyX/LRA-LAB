@@ -183,11 +183,7 @@
     lastAction = "buzz";
     buzzPending = true;
     try {
-      if (await onbuzz()) {
-        setup.felt = true;
-        setup.completed = true;
-        setup.preferredMode = "docs";
-      }
+      await onbuzz();
     } finally {
       buzzPending = false;
     }

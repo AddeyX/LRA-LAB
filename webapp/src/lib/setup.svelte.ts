@@ -72,6 +72,9 @@ export class SetupState {
   get configKey(): string | null {
     if (!deriveLra(this.lra).profile || !derivePins(this.pins).pins ||
       (this.route === "platformio" && !/^[\w.-]+$/.test(this.boardId.trim()))) return null;
+    return this.inputKey;
+  }
+  get inputKey(): string {
     return JSON.stringify([1, this.lra.ratedVrms, this.lra.maxVoltage,
       this.lra.maxConvention, this.lra.resonantHz, this.pins.sda, this.pins.scl,
       this.route, this.boardId.trim(), this.nativeUsb]);
@@ -83,19 +86,31 @@ export class SetupState {
     this.downloadedConfig = value ? this.configKey : null;
   }
   get felt() {
-    return this.configKey !== null && this.feltConfig === this.configKey;
+    return this.feltConfig === this.inputKey;
   }
   set felt(value: boolean) {
-    this.feltConfig = value ? this.configKey : null;
+    this.feltConfig = value ? this.inputKey : null;
   }
   get completed() {
-    return this.configKey !== null && this.completedConfig === this.configKey;
+    return this.completedConfig === this.inputKey;
   }
   set completed(value: boolean) {
-    this.completedConfig = value ? this.configKey : null;
+    this.completedConfig = value ? this.inputKey : null;
   }
   preferredMode = $state<SetupMode | null>(null);
   rigOpen = $state(true);
+
+  async runTest(run: () => Promise<boolean>): Promise<boolean> {
+    const testedConfig = this.inputKey;
+    this.felt = false;
+    this.completed = false;
+    const done = await run();
+    if (!done || testedConfig !== this.inputKey) return false;
+    this.felt = true;
+    this.completed = true;
+    this.preferredMode = "docs";
+    return true;
+  }
 
   load(storage: Storage) {
     let saved: Partial<Saved>;

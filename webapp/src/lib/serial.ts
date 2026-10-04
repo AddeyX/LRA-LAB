@@ -1,4 +1,4 @@
-import { CATALOG_VERSION, PROTOCOL_VERSION, type Signature } from "./signature";
+import { CATALOG_VERSION, PROTOCOL_VERSION, durationOf, type Signature } from "./signature";
 
 type SerialPortLike = {
   open(options: { baudRate: number }): Promise<void>;
@@ -19,6 +19,13 @@ export class StudioSerial {
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   private requestId = 0;
   private previewPending = false;
+  private playbackGeneration = 0;
+  private completion: {
+    requestId: number;
+    started: boolean;
+    resolve: (success: boolean) => void;
+    timer: ReturnType<typeof setTimeout>;
+  } | null = null;
   private pending = new Map<
     number,
     {
@@ -104,18 +111,48 @@ export class StudioSerial {
   async preview() {
     return this.request("PREVIEW");
   }
-  async play(signature: Signature): Promise<boolean> {
+  async play(
+    signature: Signature,
+    options: { waitForDone?: boolean; onPlaying?: () => void } = {},
+  ): Promise<boolean> {
     if (this.previewPending) return false;
     this.previewPending = true;
+    const generation = ++this.playbackGeneration;
     try {
       await this.load(signature);
+      if (generation !== this.playbackGeneration) return false;
+      // Subscribe before PREVIEW: PLAYING and DONE can arrive in one read.
+      const finished = options.waitForDone ? new Promise<boolean>((resolve) => {
+        this.completion = {
+          requestId: this.requestId + 1,
+          started: false,
+          resolve,
+          timer: setTimeout(() => this.finishCompletion(false), durationOf(signature) + 4000),
+        };
+      }) : null;
       await this.preview();
-      return true;
+      if (generation !== this.playbackGeneration) return false;
+      options.onPlaying?.();
+      return finished ? await finished : true;
     } finally {
+      this.finishCompletion(false);
       this.previewPending = false;
     }
   }
+  private finishCompletion(success: boolean) {
+    const completion = this.completion;
+    this.completion = null;
+    if (completion) {
+      clearTimeout(completion.timer);
+      completion.resolve(success);
+    }
+  }
+  private cancelPlayback() {
+    this.playbackGeneration++;
+    this.finishCompletion(false);
+  }
   async stop() {
+    this.cancelPlayback();
     return this.request("STOP");
   }
   async calibrate() {
@@ -151,6 +188,7 @@ export class StudioSerial {
     }
   }
   private rejectPending(reason: string) {
+    this.cancelPlayback();
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timer);
       pending.reject(new Error(reason));
@@ -180,6 +218,13 @@ export class StudioSerial {
             continue;
           }
           if (message.protocolVersion !== PROTOCOL_VERSION) continue;
+          const completion = this.completion;
+          if (completion?.requestId === message.requestId) {
+            if (message.type === "PLAYING") completion.started = true;
+            if (message.type === "DONE" && completion.started) this.finishCompletion(true);
+            if (message.type === "ERROR") this.finishCompletion(false);
+          }
+          if (message.type === "STOPPED") this.cancelPlayback();
           this.onMessage(message);
           const pending = this.pending.get(message.requestId);
           if (

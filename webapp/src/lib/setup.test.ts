@@ -123,3 +123,32 @@ describe("configuration-bound completion", () => {
     expect(restored.completed).toBe(false);
   });
 });
+
+it("records test success only after completion and only for the tested configuration", async () => {
+  const setup = new SetupState();
+  setup.lra = { ratedVrms: 1.2, maxVoltage: 1.68, maxConvention: "peak", resonantHz: 170 };
+  setup.pins = { sda: 4, scl: 5 };
+  let finish!: (value: boolean) => void;
+  const running = setup.runTest(() => new Promise(resolve => { finish = resolve; }));
+  expect(setup.felt).toBe(false);
+  finish(true);
+  expect(await running).toBe(true);
+  expect(setup.felt).toBe(true);
+  expect(setup.completed).toBe(true);
+
+  const second = setup.runTest(() => new Promise(resolve => { finish = resolve; }));
+  expect(setup.felt).toBe(false);
+  setup.lra.ratedVrms = 2;
+  finish(true);
+  expect(await second).toBe(false);
+  expect(setup.completed).toBe(false);
+  expect(await setup.runTest(async () => false)).toBe(false);
+  expect(setup.felt).toBe(false);
+});
+
+it("can record DONE when an acknowledged legacy rig has no calculator inputs", async () => {
+  const setup = new SetupState();
+  expect(await setup.runTest(async () => true)).toBe(true);
+  expect(setup.felt).toBe(true);
+  expect(setup.downloaded).toBe(false);
+});
