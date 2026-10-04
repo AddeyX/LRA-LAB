@@ -35,31 +35,34 @@ export class StudioSerial {
   async connect(): Promise<DeviceMessage> {
     if (!StudioSerial.supported())
       throw new Error("Web Serial needs desktop Chrome or Edge on HTTPS or localhost.");
-    this.port = await (
-      navigator as Navigator & { serial: SerialApi }
-    ).serial.requestPort();
-    await this.port.open({ baudRate: 115200 });
-    if (!this.port.writable || !this.port.readable)
-      throw new Error("Serial port unavailable.");
-    this.writer = this.port.writable.getWriter();
-    this.reader = this.port.readable.getReader();
-    void this.readLoop();
-    const ready = await this.request("HELLO", {}, 3000);
-    if (
-      ready.type !== "READY" ||
-      ready.protocolVersion !== PROTOCOL_VERSION ||
-      ready.catalogVersion !== CATALOG_VERSION
-    ) {
+    try {
+      this.port = await (
+        navigator as Navigator & { serial: SerialApi }
+      ).serial.requestPort();
+      await this.port.open({ baudRate: 115200 });
+      if (!this.port.writable || !this.port.readable)
+        throw new Error("Serial port unavailable.");
+      this.writer = this.port.writable.getWriter();
+      this.reader = this.port.readable.getReader();
+      void this.readLoop();
+      const ready = await this.request("HELLO", {}, 3000);
+      if (
+        ready.type !== "READY" ||
+        ready.protocolVersion !== PROTOCOL_VERSION ||
+        ready.catalogVersion !== CATALOG_VERSION
+      ) {
+        throw new Error(
+          "Firmware protocol or effect catalog mismatch. Flash matching firmware.",
+        );
+      }
+      if (ready.ready !== true) {
+        throw new Error("DRV2605L unavailable. Check SDA/SCL wiring and power.");
+      }
+      return ready;
+    } catch (error) {
       await this.disconnect();
-      throw new Error(
-        "Firmware protocol or effect catalog mismatch. Flash matching firmware.",
-      );
+      throw error;
     }
-    if (ready.ready !== true) {
-      await this.disconnect();
-      throw new Error("DRV2605L unavailable. Check SDA/SCL wiring and power.");
-    }
-    return ready;
   }
   async request(
     type: string,
@@ -76,7 +79,7 @@ export class StudioSerial {
       this.pending.set(requestId, { resolve, reject, timer });
     });
     try {
-      await this.writer.write(
+      void this.writer.write(
         new TextEncoder().encode(
           JSON.stringify({
             protocolVersion: PROTOCOL_VERSION,
@@ -85,12 +88,13 @@ export class StudioSerial {
             ...data,
           }) + "\n",
         ),
-      );
+      ).catch((error) => this.rejectPending(
+        error instanceof Error ? error.message : "Serial write failed.",
+      ));
     } catch (error) {
       this.rejectPending(
         error instanceof Error ? error.message : "Serial write failed.",
       );
-      throw error;
     }
     return response;
   }
