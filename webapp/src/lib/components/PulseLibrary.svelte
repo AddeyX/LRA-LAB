@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Dialog } from "portal-bits";
+  import StudioDialog from "./studio/dialogs/StudioDialog.svelte";
   import BuiltInImpulses from "$lib/BuiltInImpulses.svelte";
   import {
     defaultPulse,
@@ -139,11 +139,11 @@
   onedit={edit}
   onremove={remove}
 />
-<Dialog
-  bind:open={discardDialog}
+<StudioDialog
+  open={discardDialog}
+  onclose={() => (discardDialog = false)}
   title="Discard pulse edits?"
   description="This pulse has changes that have not been saved to your library."
-  theme="dark"
 >
   <div class="studio-dialog-body">
     <div class="dialog-actions">
@@ -154,7 +154,7 @@
         }}>Keep editing</button
       >
       <button
-        class="dialog-primary"
+        class="dialog-danger"
         onclick={() => {
           const action = pending;
           pending = null;
@@ -165,4 +165,4 @@
       >
     </div>
   </div>
-</Dialog>
+</StudioDialog>

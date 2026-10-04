@@ -22,7 +22,7 @@
     <p>Save current project first if you want to keep these changes.</p>
     <div class="dialog-actions">
       <button onclick={onclose}>Keep editing</button><button
-        class="dialog-primary"
+        class="dialog-danger"
         onclick={ondiscard}>Discard edits and open</button
       >
     </div>
