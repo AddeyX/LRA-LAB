@@ -498,7 +498,7 @@
     }
     busy = true;
     try {
-      if (await device.play(signature)) {
+      if (await device.play(signature, { canPlay: () => serial === device && boardReady })) {
         playback.run();
         notice = "Playing signature on board…";
       } else playback.stop();
@@ -519,6 +519,7 @@
     try {
       if (await setup.runTest(() => device.play(BUZZ_SIGNATURE, {
         waitForDone: true,
+        canPlay: () => serial === device && boardReady,
         onPlaying: () => {
           playback.run();
           notice = "Playing test signature on board…";

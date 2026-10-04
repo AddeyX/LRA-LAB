@@ -190,3 +190,19 @@ it("does not send PREVIEW when stopped while LOAD is outstanding", async () => {
     expect(board.sent.map(q => q.type)).toEqual(["HELLO", "LOAD", "STOP"]);
   } finally { await serial.disconnect(); }
 });
+
+it("rechecks hardware permission after LOAD before sending PREVIEW", async () => {
+  const board = mockBoard();
+  board.holdLoad = true;
+  const serial = new StudioSerial();
+  await serial.connect();
+  let hardwareAllowed = true;
+  const play = serial.play(signature, { canPlay: () => hardwareAllowed });
+  await vi.waitFor(() => expect(board.sent.some(q => q.type === "LOAD")).toBe(true));
+  hardwareAllowed = false;
+  board.reply({ requestId: board.sent.find(q => q.type === "LOAD")!.requestId, type: "LOADED" });
+  try {
+    expect(await play).toBe(false);
+    expect(board.sent.map(q => q.type)).toEqual(["HELLO", "LOAD"]);
+  } finally { await serial.disconnect(); }
+});

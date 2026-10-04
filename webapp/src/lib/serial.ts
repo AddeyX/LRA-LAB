@@ -113,14 +113,14 @@ export class StudioSerial {
   }
   async play(
     signature: Signature,
-    options: { waitForDone?: boolean; onPlaying?: () => void } = {},
+    options: { waitForDone?: boolean; onPlaying?: () => void; canPlay?: () => boolean } = {},
   ): Promise<boolean> {
     if (this.previewPending) return false;
     this.previewPending = true;
     const generation = ++this.playbackGeneration;
     try {
       await this.load(signature);
-      if (generation !== this.playbackGeneration) return false;
+      if (generation !== this.playbackGeneration || options.canPlay?.() === false) return false;
       // Subscribe before PREVIEW: PLAYING and DONE can arrive in one read.
       const finished = options.waitForDone ? new Promise<boolean>((resolve) => {
         this.completion = {
