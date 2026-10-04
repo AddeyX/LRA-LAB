@@ -146,4 +146,4 @@ export function derivePins(input: PinInputs): PinResult {
 }
 
 export const profileLabel = (profile: LraProfile, pins: Pins) =>
-  `LRA-${Math.round(profile.resonantHz)}Hz-GPIO${pins.sda}-${pins.scl}`;
+  `LRA-v2-${Math.round(profile.resonantHz)}Hz-GPIO${pins.sda}-${pins.scl}-R${profile.ratedVoltage}-C${profile.clampVoltage}-D${profile.driveTime}`;

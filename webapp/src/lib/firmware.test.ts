@@ -48,7 +48,7 @@ describe("configureMain", () => {
     expect(out).toContain("constexpr uint8_t SDA_PIN = 8;");
     expect(out).toContain("constexpr uint8_t SCL_PIN = 9;");
     expect(out).toContain("constexpr uint8_t DRIVE_TIME = 0x10;");
-    expect(out).toContain('doc["profile"] = "LRA-235Hz-GPIO8-9";');
+    expect(out).toContain('doc["profile"] = "LRA-v2-235Hz-GPIO8-9-R78-C141-D16";');
     expect(out).not.toContain("SDA_PIN = 4;");
     expect(out).not.toContain("RATED_VOLTAGE = 0x32;");
     expect(out).not.toContain("LRA-170Hz");
@@ -104,4 +104,9 @@ describe("firmwareArchive", () => {
 
 it("computes the standard CRC-32 check value", () => {
   expect(crc32(new TextEncoder().encode("123456789"))).toBe(0xcbf43926);
+});
+
+
+it("bundled firmware reports the same versioned identity as its configured registers", () => {
+  expect(mainSource).toContain('doc["profile"] = "LRA-v2-170Hz-GPIO4-5-R50-C79-D24";');
 });

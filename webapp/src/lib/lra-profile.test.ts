@@ -77,5 +77,16 @@ describe("derivePins", () => {
 
 it("labels the profile with resonance and pins", () => {
   const { profile } = deriveLra(EXAMPLE_LRA);
-  expect(profileLabel(profile!, { sda: 4, scl: 5 })).toBe("LRA-170Hz-GPIO4-5");
+  expect(profileLabel(profile!, { sda: 4, scl: 5 })).toBe("LRA-v2-170Hz-GPIO4-5-R50-C79-D24");
+});
+
+
+it("distinguishes every drive register and pin in the firmware identity", () => {
+  const profile = deriveLra(EXAMPLE_LRA).profile!;
+  const label = profileLabel(profile, { sda: 4, scl: 5 });
+  for (const field of ["ratedVoltage", "clampVoltage", "driveTime"] as const) {
+    expect(profileLabel({ ...profile, [field]: profile[field] + 1 }, { sda: 4, scl: 5 })).not.toBe(label);
+  }
+  expect(profileLabel(profile, { sda: 8, scl: 5 })).not.toBe(label);
+  expect(profileLabel(profile, { sda: 4, scl: 9 })).not.toBe(label);
 });
