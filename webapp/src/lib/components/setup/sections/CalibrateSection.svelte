@@ -7,6 +7,7 @@
     index,
     connected,
     calibrated,
+    hardwareAllowed,
     calibrating,
     busy,
     error,
@@ -16,6 +17,7 @@
     index: number;
     connected: boolean;
     calibrated: boolean;
+    hardwareAllowed: boolean;
     calibrating: boolean;
     busy: boolean;
     error: string;
@@ -34,7 +36,7 @@
   <div class="action">
     {#if calibrated}
       <span class="chip"><i></i>Calibration passed</span>
-      <SetupButton variant="ghost" onclick={oncalibrate} disabled={busy}
+      <SetupButton variant="ghost" onclick={oncalibrate} disabled={busy || !hardwareAllowed}
         >Run again</SetupButton
       >
     {:else}
@@ -42,7 +44,7 @@
         variant="primary"
         size="lg"
         onclick={oncalibrate}
-        disabled={busy || !connected}
+        disabled={busy || !connected || !hardwareAllowed}
         >{calibrating ? "Calibrating…" : "Calibrate LRA"}</SetupButton
       >
       {#if calibrating}<span class="hint">Takes about a second. Keep it still.</span>{/if}

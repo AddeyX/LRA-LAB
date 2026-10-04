@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onDestroy, onMount, untrack } from "svelte";
   import SetupView from "$lib/components/setup/SetupView.svelte";
-  import { BUZZ_SIGNATURE } from "$lib/setup.svelte";
+  import { BUZZ_SIGNATURE, SetupState } from "$lib/setup.svelte";
+  import { FirmwareAccess } from "$lib/firmware-access.svelte";
+  import { deriveLra, derivePins, profileLabel } from "$lib/lra-profile";
+  import StudioDialog from "$lib/components/studio/dialogs/StudioDialog.svelte";
   import PulseLibrary from "$lib/components/PulseLibrary.svelte";
   import type { FileAction } from "$lib/components/header/FileMenu.svelte";
   import StudioTopBar from "$lib/components/studio/StudioTopBar.svelte";
@@ -44,10 +47,35 @@
   import { exportCpp } from "$lib/export";
   import { Playback } from "$lib/playback.svelte";
 
-  let signature = $state<Signature>(emptySignature());
-  let selectedId = $state<string | null>(null);
   let connected = $state(false);
   let firmwareProfile = $state<string | null>(null);
+  const setup = new SetupState();
+  if (typeof window !== "undefined") {
+    try { setup.load(localStorage); } catch { /* Storage may be blocked. */ }
+  }
+  $effect(() => {
+    try { setup.save(localStorage); } catch { /* Keep session state usable. */ }
+  });
+  const firmwareAccess = new FirmwareAccess();
+  let firmwareDialog = $state(false);
+  let expectedProfile = $derived.by(() => {
+    const profile = deriveLra(setup.lra).profile;
+    const pins = derivePins(setup.pins).pins;
+    return profile && pins ? profileLabel(profile, pins) : null;
+  });
+  let setupInputs = $derived(JSON.stringify([setup.lra, setup.pins, setup.route, setup.boardId, setup.nativeUsb]));
+  let firmwareStatus = $derived(firmwareAccess.status(firmwareProfile, expectedProfile));
+  let hardwareAllowed = $derived(connected && firmwareAccess.allowed(firmwareProfile, expectedProfile, setupInputs));
+  function requireHardwareAccess() {
+    if (hardwareAllowed) return true;
+    if (connected && firmwareStatus === "unverified") firmwareDialog = true;
+    error = firmwareStatus === "mismatch"
+      ? "Firmware does not match your setup. Upload matching firmware and reconnect."
+      : "Review and acknowledge the unverified firmware before using hardware.";
+    return false;
+  }
+  let signature = $state<Signature>(emptySignature());
+  let selectedId = $state<string | null>(null);
   let calibrated = $state(false);
   const playback = new Playback();
   let playing = $derived(playback.active);
@@ -101,13 +129,15 @@
   let code = $derived.by(() => (validation ? "" : exportCpp(signature)));
   let brushKind = $state<BrushKind>(1);
   let brush = $derived(makeBeat(brushKind, 0, "placement-brush"));
-  let boardReady = $derived(connected && calibrated);
+  let boardReady = $derived(hardwareAllowed && calibrated);
   let canPreview = $derived(!validation && !busy && !playing);
   let previewHint = $derived(
     validation ??
       (boardReady
         ? "Play on board"
-        : connected
+        : connected && !hardwareAllowed
+          ? "Simulate preview · review firmware before hardware playback"
+          : connected
           ? "Simulate preview · calibrate the board to play on hardware"
           : "Simulate preview · no board needed"),
   );
@@ -389,11 +419,14 @@
     if (busy || connected) return;
     busy = true;
     error = "";
+    firmwareAccess.reset();
     try {
       const device = new StudioSerial();
       serial = device;
       device.onMessage = deviceMessage;
       device.onDisconnect = (reason) => {
+        firmwareAccess.reset();
+        firmwareDialog = false;
         connected = false;
         firmwareProfile = null;
         calibrated = false;
@@ -405,6 +438,7 @@
       firmwareProfile =
         typeof ready.profile === "string" ? ready.profile : null;
       calibrated = ready.calibrated === true;
+      if (firmwareStatus === "unverified") firmwareDialog = true;
       notice = calibrated
         ? "Board ready for preview."
         : "Board connected. Calibrate LRA before preview.";
@@ -416,7 +450,7 @@
     }
   }
   async function calibrate() {
-    if (!serial || busy || boardPlaying) return;
+    if (!serial || busy || boardPlaying || !requireHardwareAccess()) return;
     calibrating = true;
     busy = true;
     notice = "Calibrating LRA…";
@@ -435,6 +469,8 @@
     }
   }
   async function disconnect() {
+    firmwareAccess.reset();
+    firmwareDialog = false;
     try {
       if (boardPlaying) playback.stop();
       await serial?.disconnect();
@@ -598,6 +634,7 @@
     {connected}
     {calibrated}
     {calibrating}
+    {hardwareAllowed}
     {busy}
     playing={boardPlaying}
     {notice}
@@ -611,6 +648,16 @@
     ontoggleview={() =>
       leaveLibrary(() => (view = view === "studio" ? "setup" : "studio"))}
   />
+  {#if connected && !hardwareAllowed}
+    <aside class="firmware-notice" role="status">
+      <p>{firmwareStatus === "mismatch"
+        ? "Firmware does not match your setup. Upload matching firmware and reconnect before using hardware."
+        : "Firmware settings are unverified. Review them before calibration or hardware playback."}</p>
+      <button onclick={() => firmwareStatus === "mismatch" ? (view = "setup") : (firmwareDialog = true)}>
+        {firmwareStatus === "mismatch" ? "Open setup" : "Review firmware"}
+      </button>
+    </aside>
+  {/if}
   <input
     class="visually-hidden"
     type="file"
@@ -622,6 +669,8 @@
   <p class="visually-hidden" role="status">{notice}</p>
   {#if view === "setup"}
     <SetupView
+      {setup}
+      {hardwareAllowed}
       {connected}
       {calibrated}
       {calibrating}
@@ -783,4 +832,37 @@
       grid-template-areas: "sequence" "inspector" "library";
     }
   }
+
+  .firmware-notice {
+    margin: 0 var(--spacing-page-gutter) 12px;
+    padding: 12px 16px;
+    border-radius: var(--radius-control);
+    background: var(--color-warning-surface, var(--color-surface-raised));
+    color: var(--color-ink);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .firmware-notice p { flex: 1; margin: 0; }
+
 </style>
+
+
+<StudioDialog open={firmwareDialog} onclose={() => (firmwareDialog = false)}
+  title="Verify your firmware settings"
+  description="This firmware's actuator settings could not be verified against your setup.">
+  <div class="studio-dialog-body">
+    <p>Check that the flashed voltage limits, resonance, and pins suit your LRA. Incorrect settings can damage the actuator. Acknowledgment applies only to this connection and these settings.</p>
+    <p>Reported profile: {firmwareProfile ?? "Not provided"}</p>
+    <div class="dialog-actions">
+      <button onclick={() => (firmwareDialog = false)}>Cancel</button>
+      <button class="dialog-primary" disabled={!connected || firmwareStatus !== "unverified"}
+        onclick={() => {
+          firmwareAccess.acknowledge(firmwareProfile, expectedProfile, setupInputs);
+          firmwareDialog = false;
+          error = "";
+        }}>I checked the settings — allow hardware</button>
+    </div>
+  </div>
+</StudioDialog>

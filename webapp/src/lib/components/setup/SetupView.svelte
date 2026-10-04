@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { MediaQuery } from "svelte/reactivity";
   import { fly } from "svelte/transition";
   import Card from "$lib/components/studio/Card.svelte";
   import { deriveLra, derivePins, hex, profileLabel } from "$lib/lra-profile";
   import { StudioSerial } from "$lib/serial";
-  import { PARTS, SetupState, type SetupMode } from "$lib/setup.svelte";
+  import { PARTS, type SetupState, type SetupMode } from "$lib/setup.svelte";
   import RigCard, { type RigItem } from "./RigCard.svelte";
   import Segmented from "./Segmented.svelte";
   import SetupSteps from "./SetupSteps.svelte";
@@ -20,6 +20,8 @@
   import WiringSection from "./sections/WiringSection.svelte";
 
   let {
+    setup,
+    hardwareAllowed,
     connected,
     calibrated,
     calibrating,
@@ -32,6 +34,8 @@
     onbuzz,
     onexit,
   }: {
+    setup: SetupState;
+    hardwareAllowed: boolean;
     connected: boolean;
     calibrated: boolean;
     calibrating: boolean;
@@ -57,8 +61,6 @@
   ];
   const indexOf = (id: StepId) => STEPS.findIndex((step) => step.id === id);
 
-  const setup = new SetupState();
-  if (typeof localStorage !== "undefined") setup.load(localStorage);
   const serialSupported = StudioSerial.supported();
   const secure = typeof window !== "undefined" && window.isSecureContext;
   const reducedMotion = new MediaQuery("(prefers-reduced-motion: reduce)");
@@ -96,16 +98,13 @@
     return next >= 0 ? next : STEPS.length - 1;
   }
 
-  let mode = $state<SetupMode>(setup.preferredMode ?? "guided");
+  let mode = $state<SetupMode>(untrack(() => setup.preferredMode ?? "guided"));
   let step = $state(resumeIndex());
   let active = $state(0);
   let current = $derived(mode === "guided" ? step : active);
   let scroller = $state<HTMLElement>();
   let spyLockedUntil = 0;
 
-  $effect(() => {
-    setup.save(localStorage);
-  });
 
   function sectionEl(index: number) {
     return scroller?.querySelector<HTMLElement>(`#setup-${STEPS[index].id}`);
@@ -292,6 +291,7 @@
       {connected}
       {calibrated}
       {calibrating}
+      {hardwareAllowed}
       {busy}
       error={errorStep === "calibrate" ? error : ""}
       oncalibrate={calibrate}
@@ -300,7 +300,7 @@
   {:else}
     <BuzzSection
       {index}
-      ready={connected && calibrated}
+      ready={hardwareAllowed && calibrated}
       {connected}
       felt={setup.felt}
       {buzzing}
