@@ -483,14 +483,14 @@
     try {
       if (await device.play(BUZZ_SIGNATURE)) {
         playback.run();
-        notice = "Playing test pattern on board…";
+        notice = "Playing test signature on board…";
         return true;
       }
       playback.stop();
       return false;
     } catch (cause) {
       playback.stop("failed");
-      error = cause instanceof Error ? cause.message : "Test pattern failed.";
+      error = cause instanceof Error ? cause.message : "Test signature failed.";
       return false;
     } finally {
       busy = false;

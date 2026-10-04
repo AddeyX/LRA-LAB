@@ -31,8 +31,8 @@
 <SetupSection
   id="setup-buzz"
   {index}
-  title="Feel the first buzz"
-  lead="Send a short test pattern to the board: two clicks and a swell. If you feel it, your rig is ready for the studio."
+  title="Run your first haptic"
+  lead="Send a test signature to the board: two click effects followed by a 600 ms amplitude ramp. If the actuator responds, the rig is ready for the studio."
   done={felt}
 >
   <div class="stage" class:live={buzzing} class:ready>
@@ -47,7 +47,7 @@
         size="lg"
         onclick={onbuzz}
         disabled={!ready || busy}
-        >{buzzing ? "Buzzing…" : felt ? "Play again" : "Feel it"}</SetupButton
+        >{buzzing ? "Running…" : felt ? "Run again" : "Run test signature"}</SetupButton
       >
       {#if felt}
         <SetupButton size="lg" onclick={onstudio}>Open the studio →</SetupButton>
@@ -58,7 +58,7 @@
   {#if !ready}
     <Note title={connected ? "Calibrate first" : "Connect and calibrate first"}>
       <p>
-        The test plays on hardware only. You can still design in the studio
+        The test signature runs on hardware only. You can still design in the studio
         with simulated playback.
       </p>
     </Note>
@@ -76,7 +76,7 @@
     </Note>
   {/if}
   {#if error}
-    <Note tone="danger" title="The test didn't play" role="alert"><p>{error}</p></Note>
+    <Note tone="danger" title="Test signature failed" role="alert"><p>{error}</p></Note>
   {/if}
 </SetupSection>
 

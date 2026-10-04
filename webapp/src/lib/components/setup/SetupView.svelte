@@ -53,7 +53,7 @@
     { id: "firmware", title: "Firmware" },
     { id: "connect", title: "Connect" },
     { id: "calibrate", title: "Calibrate" },
-    { id: "buzz", title: "First buzz" },
+    { id: "buzz", title: "First haptic" },
   ];
   const indexOf = (id: StepId) => STEPS.findIndex((step) => step.id === id);
 
@@ -323,7 +323,7 @@
       <header class="doc-head">
         <div>
           <h1 id="setup-title">Set up your rig</h1>
-          <p>ESP32, DRV2605L and LRA. Seven steps from parts to first buzz.</p>
+          <p>ESP32, DRV2605L and LRA. Seven steps from parts list to first haptic playback.</p>
         </div>
         <Segmented
           label="Reading mode"
