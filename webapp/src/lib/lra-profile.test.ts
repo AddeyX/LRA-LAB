@@ -55,11 +55,11 @@ describe("deriveLra", () => {
     expect(deriveLra({ ...EXAMPLE_LRA, maxVoltage: 0.01 }).errors.maxVoltage).toMatch(/low/);
   });
 
-  it("warns only when the clamp sits below the rated voltage", () => {
+  it("warns when the clamp sits below the nominal rated peak", () => {
     const low = deriveLra({ ...EXAMPLE_LRA, ratedVrms: 2, maxVoltage: 1.5 });
     expect(low.profile).not.toBeNull();
     expect(low.warnings).toHaveLength(1);
-    expect(deriveLra(EXAMPLE_LRA).warnings).toEqual([]);
+    expect(deriveLra({ ...EXAMPLE_LRA, maxVoltage: 1.8 }).warnings).toEqual([]);
   });
 });
 
@@ -89,4 +89,14 @@ it("distinguishes every drive register and pin in the firmware identity", () => 
   }
   expect(profileLabel(profile, { sda: 8, scl: 5 })).not.toBe(label);
   expect(profileLabel(profile, { sda: 4, scl: 9 })).not.toBe(label);
+});
+
+
+it("warns when clamp is above rated RMS but below the rated sinusoidal peak", () => {
+  const peak = deriveLra({ ...EXAMPLE_LRA, maxVoltage: 1.5, maxConvention: "peak" });
+  const rms = deriveLra({ ...EXAMPLE_LRA, maxVoltage: 1.5 / Math.SQRT2, maxConvention: "rms" });
+  expect(peak.warnings).toHaveLength(1);
+  expect(rms.warnings).toHaveLength(1);
+  expect(peak.profile!.clampVpeak).toBeCloseTo(1.4854);
+  expect(peak.warnings[0]).toContain("V peak");
 });

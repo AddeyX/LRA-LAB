@@ -118,9 +118,10 @@ export function deriveLra(input: LraInputs): LraResult {
     driveTimeMs: driveTime * 0.1 + 0.5,
     halfPeriodMs,
   };
-  if (profile.clampVpeak < profile.ratedVrms)
+  const ratedVpeak = profile.ratedVrms * Math.SQRT2;
+  if (profile.clampVpeak < ratedVpeak)
     warnings.push(
-      `The clamp (${profile.clampVpeak.toFixed(2)} V peak) is below the rated voltage (${profile.ratedVrms.toFixed(2)} V RMS). The driver takes the clamp first, so output stays under your rated voltage.`,
+      `The clamp (${profile.clampVpeak.toFixed(2)} V peak) is below the nominal rated peak (${ratedVpeak.toFixed(2)} V peak). The clamp can limit the rated waveform's output.`,
     );
   return { profile, errors, warnings };
 }
