@@ -101,3 +101,17 @@ describe("signature", () => {
     expect(code).toContain("signatureEndMs = 300");
   });
 });
+
+it("restores an empty draft after deleting the last beat without making it playable", () => {
+  const lastSaved = sample;
+  const draft = parseDraft('{"schemaVersion":1,"blocks":[]}');
+  const recovered = draft ?? lastSaved;
+  expect(recovered).toEqual({ schemaVersion: 1, blocks: [] });
+  expect(validateSignature(recovered)).toMatch(/1–32 blocks/);
+});
+
+it.each(['{"schemaVersion":2,"blocks":[]}', '{"blocks":[]}', '{"schemaVersion":1,"blocks":{}}', 'null'])(
+  "still rejects malformed or unsupported empty drafts: %s", (raw) => {
+    expect(parseDraft(raw)).toBeNull();
+  },
+);

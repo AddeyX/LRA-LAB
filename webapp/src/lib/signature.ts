@@ -140,6 +140,10 @@ export function parseDraft(raw: string | null): Signature | null {
   if (!raw) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" &&
+      "schemaVersion" in parsed && parsed.schemaVersion === 1 &&
+      "blocks" in parsed && Array.isArray(parsed.blocks) && parsed.blocks.length === 0)
+      return parsed as Signature;
     return validateSignature(parsed) === null ? (parsed as Signature) : null;
   } catch {
     return null;
