@@ -1,22 +1,129 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { MAX_MS, blockDuration, effectById, type Block } from "./signature";
   import { GRID_MS, editTimeline, resizePulse, snapTime } from "./timeline";
   import ScrubField from "./components/ScrubField.svelte";
+  import type { BrushKind } from "./pulse-library";
+  import type { PlaybackStatus } from "./playback.svelte";
 
-  let { blocks, selectedId, brush, onselect, onplace, onedit, onremove } =
-    $props<{
-      blocks: Block[];
-      selectedId: string | null;
-      brush: Block;
-      onselect: (id: string) => void;
-      onplace: (timeMs: number, kind?: number | "pulse") => void;
-      onedit: (block: Block) => void;
-      onremove: (id: string) => void;
-    }>();
+  let {
+    blocks,
+    selectedId,
+    brush,
+    playhead = null,
+    onselect,
+    onplace,
+    onedit,
+    onremove,
+    hasPreset,
+  } = $props<{
+    blocks: Block[];
+    selectedId: string | null;
+    brush: Block;
+    playhead?: { ms: number; status: PlaybackStatus } | null;
+    onselect: (id: string) => boolean | void;
+    onplace: (timeMs: number, kind?: BrushKind) => void;
+    onedit: (block: Block) => void;
+    onremove: (id: string) => void;
+    hasPreset: (id: string) => boolean;
+  }>();
 
   let lane: HTMLDivElement;
   let viewport: HTMLDivElement;
-  let cellWidth = $state(20);
+  let minimap: HTMLDivElement;
+  let zoom = $state(100);
+  let scroll = $state({ left: 0, width: 1, client: 1 });
+  let scrub = $state<{ pointerId: number; grabMs: number } | null>(null);
+  const measure = () => {
+    if (!viewport) return;
+    scroll = {
+      left: viewport.scrollLeft,
+      width: Math.max(1, viewport.scrollWidth),
+      client: viewport.clientWidth,
+    };
+  };
+  $effect(() => {
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    observer.observe(viewport.firstElementChild as Element);
+    measure();
+    return () => observer.disconnect();
+  });
+  let viewStartMs = $derived((scroll.left / scroll.width) * MAX_MS);
+  let viewSpanMs = $derived(Math.min(MAX_MS, (scroll.client / scroll.width) * MAX_MS));
+  let endMs = $derived(
+    Math.max(0, ...blocks.map((block: Block) => block.startMs + blockDuration(block))),
+  );
+  const pct = (ms: number) => `${(ms / MAX_MS) * 100}%`;
+  const seconds = (ms: number) => (ms / 1000).toFixed(2);
+  function reveal(startMs: number, behavior: ScrollBehavior = "auto") {
+    viewport.scrollTo({
+      left: (Math.max(0, startMs) / MAX_MS) * viewport.scrollWidth,
+      behavior,
+    });
+  }
+  const centerOn = (ms: number, behavior?: ScrollBehavior) =>
+    reveal(ms - viewSpanMs / 2, behavior);
+  const minimapMs = (clientX: number) => {
+    const bounds = minimap.getBoundingClientRect();
+    return Math.min(
+      MAX_MS,
+      Math.max(0, ((clientX - bounds.left) / bounds.width) * MAX_MS),
+    );
+  };
+  function beginScrub(event: PointerEvent) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    minimap.focus({ preventScroll: true });
+    minimap.setPointerCapture(event.pointerId);
+    const ms = minimapMs(event.clientX);
+    const inWindow = ms >= viewStartMs && ms <= viewStartMs + viewSpanMs;
+    const grabMs = inWindow ? ms - viewStartMs : viewSpanMs / 2;
+    scrub = { pointerId: event.pointerId, grabMs };
+    reveal(ms - grabMs);
+  }
+  function moveScrub(event: PointerEvent) {
+    if (scrub?.pointerId === event.pointerId)
+      reveal(minimapMs(event.clientX) - scrub.grabMs);
+  }
+  function endScrub(event: PointerEvent) {
+    if (scrub?.pointerId === event.pointerId) scrub = null;
+  }
+  function minimapKeys(event: KeyboardEvent) {
+    const sorted = [...blocks].sort((a, b) => a.startMs - b.startMs);
+    const center = viewStartMs + viewSpanMs / 2;
+    const jump = (block: Block | undefined) =>
+      block && centerOn(block.startMs + blockDuration(block) / 2, "smooth");
+    const actions: Record<string, () => void> = {
+      ArrowLeft: () => reveal(viewStartMs - viewSpanMs / 4, "smooth"),
+      ArrowRight: () => reveal(viewStartMs + viewSpanMs / 4, "smooth"),
+      PageUp: () => reveal(viewStartMs - viewSpanMs, "smooth"),
+      PageDown: () => reveal(viewStartMs + viewSpanMs, "smooth"),
+      Home: () => reveal(0, "smooth"),
+      End: () => reveal(MAX_MS, "smooth"),
+      ArrowUp: () =>
+        jump(sorted.find((b) => b.startMs + blockDuration(b) / 2 > center + 1)),
+      ArrowDown: () =>
+        jump(
+          sorted.findLast((b) => b.startMs + blockDuration(b) / 2 < center - 1),
+        ),
+    };
+    const action = actions[event.key];
+    if (!action) return;
+    event.preventDefault();
+    action();
+  }
+  // Keep the arm on screen without fighting a user who is scrubbing.
+  let followUntil = 0;
+  $effect(() => {
+    if (!playhead || playhead.status !== "playing" || scrub) return;
+    const ms = playhead.ms;
+    if (performance.now() < followUntil) return;
+    if (ms < viewStartMs || ms > viewStartMs + viewSpanMs * 0.9) {
+      followUntil = performance.now() + 450;
+      reveal(ms - viewSpanMs * 0.1, "smooth");
+    }
+  });
   let hoverMs = $state<number | null>(null);
   let drag = $state<{
     original: Block;
@@ -34,14 +141,18 @@
       (hoverMs === null ? null : { ...brush, startMs: hoverMs }),
   );
   let ghostError = $derived(ghost ? editTimeline(blocks, ghost).error : null);
-  let width = $derived((MAX_MS / GRID_MS) * cellWidth);
-  const x = (ms: number) => (ms / GRID_MS) * cellWidth;
+  // CSS owns the cell size; timing and zoom only supply dimensionless multipliers.
+  const distance = (cells: number) =>
+    `calc(var(--spacing-timeline-cell) * ${cells})`;
+  const x = (ms: number) => distance((ms / GRID_MS) * (zoom / 100));
   const name = (block: Block) =>
     block.type === "pulse"
       ? "Custom pulse"
       : (effectById(block.effectId)?.name ?? "Effect");
-  const timeAt = (clientX: number) =>
-    ((clientX - lane.getBoundingClientRect().left) / width) * MAX_MS;
+  const timeAt = (clientX: number) => {
+    const bounds = lane.getBoundingClientRect();
+    return ((clientX - bounds.left) / bounds.width) * MAX_MS;
+  };
   const envelope = (block: Block) =>
     block.type === "pulse"
       ? block.keyframes
@@ -61,8 +172,10 @@
     event.preventDefault();
     event.stopPropagation();
     hoverMs = null;
-    onselect(block.id);
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    if (onselect(block.id) === false) return;
+    const target = event.currentTarget as HTMLElement;
+    target.focus({ preventScroll: true });
+    target.setPointerCapture(event.pointerId);
     drag = {
       original: block,
       candidate: block,
@@ -77,6 +190,7 @@
     if (!drag || drag.pointerId !== event.pointerId) return;
     if (!drag.moved && Math.abs(event.clientX - drag.originX) < 3) return;
     const bounds = viewport.getBoundingClientRect();
+    const cellWidth = lane.getBoundingClientRect().width / steps.length;
     if (event.clientX > bounds.right - 28) viewport.scrollLeft += cellWidth;
     if (event.clientX < bounds.left + 28) viewport.scrollLeft -= cellWidth;
     const timeMs = timeAt(event.clientX);
@@ -110,6 +224,17 @@
         ? resizePulse(block, block.durationMs + amount)
         : { ...block, startMs: Math.max(0, block.startMs + amount) },
     );
+    const button = event.currentTarget as HTMLButtonElement;
+    void tick().then(() => {
+      if (!button.isConnected) return;
+      button.focus({ preventScroll: true });
+      const bounds = button.getBoundingClientRect(),
+        visible = viewport.getBoundingClientRect();
+      if (bounds.left < visible.left)
+        viewport.scrollLeft -= visible.left - bounds.left;
+      else if (bounds.right > visible.right)
+        viewport.scrollLeft += bounds.right - visible.right;
+    });
   }
   function drop(event: DragEvent) {
     event.preventDefault();
@@ -117,39 +242,49 @@
     const value = event.dataTransfer?.getData("application/x-haptic-beat");
     if (!value) return;
     if (value === "pulse") onplace(snapTime(timeAt(event.clientX)), "pulse");
+    else if (value.startsWith("preset:") && hasPreset(value.slice(7)))
+      onplace(snapTime(timeAt(event.clientX)), value as BrushKind);
     else if (effectById(Number(value)))
       onplace(snapTime(timeAt(event.clientX)), Number(value));
   }
 </script>
 
-<div class="sequencer-toolbar">
-  <span class="snap-label"
-    ><span aria-hidden="true">▦</span> SNAP <strong>40 ms</strong></span
-  >
+<div class="sequencer-toolbar flex-wrap">
+  <span class="snap-label">Snap <strong>40 ms</strong></span>
   <span class="timeline-hint">Click to place · drag to move</span>
   <div class="zoom-control">
     <ScrubField
       label="Zoom"
       suffix="%"
-      value={cellWidth * 5}
+      value={zoom}
       defaultValue={100}
       min={60}
       max={160}
       step={5}
       size="sm"
-      accent="#80b4ff"
-      chipColor="var(--surface)"
-      onChange={(value) => (cellWidth = value / 5)}
+      accent="var(--color-accent-bright)"
+      chipColor="var(--color-surface-raised)"
+      showFill={false}
+      onChange={(value) => (zoom = value)}
     />
   </div>
 </div>
-<div class="sequencer-body" role="region" aria-label="Haptic timeline">
-  <div class="sequencer-viewport" bind:this={viewport}>
-    <div class="sequencer-canvas" style:width={`${width}px`}>
+<!-- Timeline coordinates and drag math remain physical left-to-right in RTL layouts. -->
+<div
+  class="sequencer-body"
+  role="region"
+  aria-label="Haptic timeline"
+  dir="ltr"
+>
+  <div class="sequencer-viewport" bind:this={viewport} onscroll={measure}>
+    <div
+      class="sequencer-canvas"
+      style:width={distance((steps.length * zoom) / 100)}
+    >
       <div class="step-ruler" aria-hidden="true">
         {#each marks as mark (mark)}<span
             class:major={mark % 1000 === 0}
-            style:left={`${x(mark)}px`}
+            style:left={x(mark)}
             >{(mark / 1000).toFixed(2)}<small>s</small></span
           >{/each}
       </div>
@@ -158,7 +293,7 @@
       <div
         class="beat-lane"
         bind:this={lane}
-        style:--cell={`${cellWidth}px`}
+        style:--cell={distance(zoom / 100)}
         onpointerleave={() => {
           if (!drag) hoverMs = null;
         }}
@@ -173,8 +308,8 @@
         {#each steps as step (step)}
           <button
             class="grid-cell"
-            style:left={`${x(step)}px`}
-            style:width={`${cellWidth}px`}
+            style:left={x(step)}
+            style:width={distance(zoom / 100)}
             aria-label={`Place haptic at ${step} ms`}
             title={`${step} ms`}
             onpointerenter={() => {
@@ -186,8 +321,8 @@
           ></button>
         {/each}
         {#if blocks.length === 0}<div class="lane-empty">
-            <strong>Your first beat starts here.</strong><span
-              >Choose a haptic. Click any 40 ms cell to place it.</span
+            <strong>Place your first beat</strong><span
+              >Pick from the library, then click a cell.</span
             >
           </div>{/if}
         {#each blocks as block (block.id)}
@@ -196,15 +331,18 @@
             class:selected={selectedId === block.id}
             class:custom={block.type === "pulse"}
             class:dragging={drag?.original.id === block.id && drag?.moved}
-            style:left={`${x(block.startMs)}px`}
-            style:width={`${x(blockDuration(block))}px`}
+            style:left={x(block.startMs)}
+            style:width={x(blockDuration(block))}
           >
             <button
               class="beat"
               aria-label={`${name(block)} at ${block.startMs} ms`}
               aria-pressed={selectedId === block.id}
               title={`${name(block)} · ${block.startMs}–${block.startMs + blockDuration(block)} ms. Drag or use arrow keys to move; Delete to remove.`}
-              onclick={() => onselect(block.id)}
+              onclick={(event) => {
+                if (onselect(block.id) !== false)
+                  event.currentTarget.focus({ preventScroll: true });
+              }}
               onpointerenter={() => {
                 if (!drag) hoverMs = null;
               }}
@@ -240,8 +378,8 @@
           <div
             class="beat-ghost"
             class:invalid={!!ghostError}
-            style:left={`${x(ghost.startMs)}px`}
-            style:width={`${x(blockDuration(ghost))}px`}
+            style:left={x(ghost.startMs)}
+            style:width={x(blockDuration(ghost))}
             aria-hidden="true"
           >
             <span>{ghost.startMs} ms</span><small
@@ -254,279 +392,360 @@
           </div>
         {/if}
       </div>
+      {#if playhead}
+        <div
+          class="play-arm"
+          class:moving={playhead.status === "playing"}
+          class:failed={playhead.status === "failed"}
+          style:left={x(playhead.ms)}
+          aria-hidden="true"
+        >
+          {#if playhead.status !== "playing" && playhead.status !== "starting"}
+            <span
+              >{playhead.status === "completed"
+                ? "Completed"
+                : playhead.status === "failed"
+                  ? `Failed · ${seconds(playhead.ms)} s`
+                  : `Stopped · ${seconds(playhead.ms)} s`}</span
+            >
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
 </div>
+<div class="minimap-row">
+  <div
+    class="minimap"
+    class:scrubbing={!!scrub}
+    bind:this={minimap}
+    role="slider"
+    tabindex="0"
+    aria-label="Timeline overview"
+    aria-valuemin={0}
+    aria-valuemax={MAX_MS}
+    aria-valuenow={Math.round(viewStartMs)}
+    aria-valuetext={`Showing ${seconds(viewStartMs)} to ${seconds(viewStartMs + viewSpanMs)} s`}
+    aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home End"
+    title="Drag to scrub the timeline · ↑ ↓ jump between beats"
+    onpointerdown={beginScrub}
+    onpointermove={moveScrub}
+    onpointerup={endScrub}
+    onpointercancel={endScrub}
+    onkeydown={minimapKeys}
+  >
+    {#if endMs > 0}
+      <span class="minimap-used" style:width={pct(endMs)} aria-hidden="true"></span>
+    {/if}
+    {#each blocks as block (block.id)}
+      <span
+        class="minimap-beat"
+        class:custom={block.type === "pulse"}
+        class:selected={selectedId === block.id}
+        style:left={pct(block.startMs)}
+        style:width={pct(blockDuration(block))}
+        aria-hidden="true"
+      ></span>
+    {/each}
+    {#if blocks.length === 0}
+      <span class="minimap-empty">Overview of all 5 s · beats appear here</span>
+    {/if}
+    {#if playhead}
+      <span
+        class="minimap-arm"
+        class:failed={playhead.status === "failed"}
+        style:left={pct(playhead.ms)}
+        aria-hidden="true"
+      ></span>
+    {/if}
+    <span
+      class="minimap-window"
+      style:left={pct(viewStartMs)}
+      style:width={pct(viewSpanMs)}
+      aria-hidden="true"
+    ></span>
+  </div>
+  <span class="minimap-readout" aria-hidden="true"
+    >{seconds(viewStartMs)}–{seconds(viewStartMs + viewSpanMs)} s</span
+  >
+</div>
 
-<style>
+<style lang="postcss">
+  @reference "../app.css";
+
   .sequencer-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 20px;
-    border-block: 1px solid var(--line);
-    background: var(--surface);
-    font-size: 10px;
+    @apply flex items-center gap-3;
+    padding: 0 var(--card-inset, 0) calc(var(--spacing) * 3);
+    @apply text-size-13;
   }
   .snap-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    white-space: nowrap;
-  }
-  .snap-label > span {
-    color: var(--accent-bright);
-    font-size: 18px;
+    @apply flex items-center gap-2 text-muted whitespace-nowrap;
+    letter-spacing: 0.03em;
   }
   .snap-label strong {
-    color: var(--accent-bright);
-    letter-spacing: 0;
-    background: var(--surface-soft);
-    padding: 4px 7px;
-    border-radius: 3px;
+    @apply font-normal text-ink bg-surface-raised;
+    padding: calc(var(--spacing) * 1) calc(var(--spacing) * 2.5);
+    @apply rounded-pill;
   }
   .timeline-hint {
-    color: var(--muted);
+    @apply text-muted;
+    letter-spacing: 0.03em;
   }
   .zoom-control {
-    margin-left: auto;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    color: var(--muted);
-    font-size: 9px;
-    letter-spacing: 0.1em;
+    @apply ms-auto flex gap-2 items-center text-muted;
   }
   .sequencer-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    min-width: 0;
-    margin-inline: 20px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    overflow: hidden;
+    @apply grid grid-cols-1 min-w-0 overflow-hidden bg-surface-raised;
+    border-radius: calc(var(--spacing) * 4.5);
   }
   .sequencer-viewport {
-    overflow-x: auto;
-    min-width: 0;
-    max-width: 100%;
-    scrollbar-color: var(--line) var(--canvas);
+    @apply overflow-x-auto min-w-0 max-w-full;
+    scrollbar-color: var(--color-control-hover) transparent;
     scrollbar-width: thin;
   }
   .sequencer-canvas {
-    position: relative;
+    @apply relative;
   }
   .step-ruler {
-    height: 42px;
-    background: var(--surface);
-    position: relative;
-    border-bottom: 1px solid var(--line);
+    @apply h-ruler relative bg-surface-raised;
   }
   .step-ruler > span {
-    position: absolute;
-    top: 16px;
-    height: 26px;
-    padding-left: 5px;
-    border-left: 1px solid var(--line);
-    font-size: 10px;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
+    @apply absolute top-4 h-6.5 ps-1.5;
+    border-left: calc(var(--spacing) * 0.25) solid var(--color-line);
+    @apply text-size-11 text-subtle tabular-nums;
   }
   .step-ruler > span.major {
-    color: var(--text);
-    border-color: var(--subtle);
-    font-weight: 700;
+    @apply text-ink border-ink;
   }
   .step-ruler small {
-    font-size: 8px;
-    padding-left: 2px;
+    @apply text-size-9 ps-0.5;
   }
   .beat-lane {
-    height: 196px;
-    position: relative;
-    overflow: hidden;
+    @apply h-lane relative overflow-hidden;
     background:
       repeating-linear-gradient(
         to right,
-        color-mix(in srgb, var(--accent-bright) 18%, transparent) 0 1px,
-        transparent 1px calc(var(--cell) * 5)
+        var(--color-control-line) 0 calc(var(--spacing) * 0.25),
+        transparent calc(var(--spacing) * 0.25) calc(var(--cell) * 5)
       ),
       repeating-linear-gradient(
         to right,
-        color-mix(in srgb, var(--line) 65%, transparent) 0 1px,
-        transparent 1px var(--cell)
+        color-mix(in srgb, var(--color-line) 70%, transparent) 0
+          calc(var(--spacing) * 0.25),
+        transparent calc(var(--spacing) * 0.25) var(--cell)
       ),
-      repeating-linear-gradient(
-        to bottom,
-        transparent 0 48px,
-        color-mix(in srgb, var(--line) 40%, transparent) 48px 49px
-      ),
-      var(--surface-raised);
+      var(--color-panel-raised);
   }
   .grid-cell {
-    position: absolute;
+    @apply absolute;
     inset-block: 0;
     background: transparent;
     border: 0;
-    border-radius: 0;
-    padding: 0;
-    cursor: crosshair;
+    @apply rounded-none;
+    @apply p-0 cursor-crosshair;
     transition: none;
   }
-  .grid-cell:hover,
+  .grid-cell:hover {
+    background: transparent;
+    transform: none;
+  }
   .grid-cell:focus-visible {
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 22%, transparent);
     transform: none;
   }
   .lane-empty {
-    position: absolute;
-    top: 72px;
-    left: 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    pointer-events: none;
-    color: var(--muted);
-    font-size: 12px;
+    @apply absolute inset-0 flex flex-col items-center justify-center gap-1.5 pointer-events-none text-muted text-size-13;
   }
   .lane-empty strong {
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 500;
+    @apply text-ink text-size-16 font-medium;
   }
   .beat-wrapper {
-    position: absolute;
-    top: 42px;
-    height: 112px;
+    @apply absolute top-10.5 h-beat;
     z-index: 2;
-    border-radius: 9px;
-    background: var(--accent);
-    border: 1px solid var(--accent-bright);
-    color: var(--text);
-    box-shadow: 0 3px 0 var(--canvas);
+    @apply bg-accent text-ink;
+    border-radius: calc(var(--spacing) * 3);
+    transition: box-shadow 0.25s var(--ease-butter);
   }
   .beat-wrapper.custom {
-    background: var(--accent-deep);
-    border-color: var(--accent);
-    color: var(--text);
+    @apply bg-butter;
   }
   .beat-wrapper.selected {
-    outline: 2px solid var(--text);
-    outline-offset: 2px;
+    outline: calc(var(--spacing) * 0.5) solid var(--color-ink);
+    outline-offset: calc(var(--spacing) * 0.5);
     z-index: 3;
   }
   .beat-wrapper.dragging {
     opacity: 0.28;
   }
   .beat {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    padding: 8px 5px;
-    gap: 5px;
+    @apply flex flex-col w-full h-full;
+    padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 2);
+    @apply gap-1.25;
     border: none;
     background: transparent;
     color: inherit;
-    overflow: hidden;
-    text-align: left;
-    cursor: grab;
+    @apply overflow-hidden text-start cursor-grab;
     touch-action: none;
     transition: none;
-    border-radius: 3px;
+    border-radius: inherit;
   }
   .beat:hover:enabled,
   .beat:active:enabled {
     transform: none;
-    background: color-mix(in srgb, var(--text) 8%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 7%, transparent);
   }
   .beat:active {
-    cursor: grabbing;
+    @apply cursor-grabbing;
   }
   .beat-name {
-    font-size: 10px;
-    font-weight: 700;
-    white-space: nowrap;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    @apply text-size-11 font-medium whitespace-nowrap max-w-full overflow-hidden text-ellipsis;
   }
   .beat svg {
-    width: 100%;
-    height: 43px;
-    flex-shrink: 0;
+    @apply w-full h-10.75 shrink-0;
     margin-block: auto;
-    opacity: 0.75;
   }
   .beat polyline {
     fill: none;
     stroke: currentColor;
-    stroke-width: 2;
+    stroke-width: 1.8;
+    stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
   }
   .beat-duration {
-    font-size: 9px;
-    white-space: nowrap;
-    opacity: 1;
-    font-variant-numeric: tabular-nums;
+    @apply text-size-10 whitespace-nowrap tabular-nums;
+    opacity: 0.7;
   }
   .resize-handle {
-    position: absolute;
+    @apply absolute;
     right: 0;
-    top: 0;
-    height: 100%;
-    width: 12px;
-    padding: 0;
-    background: color-mix(in srgb, var(--canvas) 18%, transparent);
+    @apply top-0 h-full w-3 p-0;
+    background: color-mix(in srgb, var(--color-ink) 8%, transparent);
     border: 0;
     color: inherit;
-    cursor: ew-resize;
+    @apply cursor-ew-resize;
     touch-action: none;
-    border-radius: 0 3px 3px 0;
+    border-radius: 0 calc(var(--spacing) * 3) calc(var(--spacing) * 3) 0;
     transition: none;
   }
   .resize-handle:hover:enabled {
-    background: color-mix(in srgb, var(--canvas) 30%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 16%, transparent);
     transform: none;
   }
   .beat-ghost {
-    position: absolute;
-    top: 40px;
-    height: 116px;
-    border: 2px dashed var(--accent-bright);
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
-    color: var(--text);
+    @apply absolute top-10 h-ghost;
+    border: calc(var(--spacing) * 0.5) dashed
+      color-mix(in srgb, var(--color-ink) 45%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    @apply text-ink;
     z-index: 4;
-    pointer-events: none;
-    padding: 8px 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    overflow: hidden;
-    border-radius: 4px;
-    white-space: nowrap;
-    font-size: 11px;
+    @apply pointer-events-none;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 1.5);
+    border-radius: calc(var(--spacing) * 3);
+    @apply flex flex-col gap-2 overflow-hidden whitespace-nowrap text-size-11;
   }
   .beat-ghost small {
-    font-size: 9px;
+    @apply text-size-10 text-muted;
   }
   .beat-ghost.invalid {
-    border-color: #f5a6b9;
-    background: #38232c;
-    color: #ffd0d7;
+    @apply border-danger bg-danger-surface text-danger-ink;
   }
-  @media (max-width: 760px) {
-    .sequencer-body {
-      margin-inline: 12px;
-    }
+  .play-arm {
+    @apply absolute top-0 bottom-0 pointer-events-none;
+    z-index: 5;
+    width: calc(var(--spacing) * 0.5);
+    margin-left: calc(var(--spacing) * -0.25);
+    background: var(--color-ink);
+    opacity: 0.55;
+    transition: opacity 0.3s var(--ease-butter);
+  }
+  .play-arm.moving {
+    opacity: 1;
+  }
+  .play-arm::before {
+    content: "";
+    @apply absolute top-0;
+    left: 50%;
+    width: calc(var(--spacing) * 2.5);
+    height: calc(var(--spacing) * 2.5);
+    border-radius: 50%;
+    background: inherit;
+    transform: translate(-50%, -25%);
+  }
+  .play-arm.failed {
+    @apply bg-danger;
+  }
+  .play-arm > span {
+    @apply absolute whitespace-nowrap text-size-10 text-ink bg-surface-raised tabular-nums;
+    top: calc(var(--spacing) * 1);
+    left: calc(var(--spacing) * 2.5);
+    padding: calc(var(--spacing) * 0.5) calc(var(--spacing) * 1.5);
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.03em;
+  }
+  .minimap-row {
+    @apply flex items-center gap-3;
+    margin-top: calc(var(--spacing) * 2);
+  }
+  .minimap {
+    @apply relative flex-1 min-w-0 overflow-hidden bg-surface-raised cursor-pointer;
+    height: calc(var(--spacing) * 7);
+    border-radius: var(--radius-control);
+    touch-action: none;
+  }
+  .minimap:focus-visible {
+    outline: var(--outline-width-focus) solid var(--color-accent-bright);
+    outline-offset: calc(var(--spacing) * 0.5);
+  }
+  .minimap-used {
+    @apply absolute inset-y-0 left-0;
+    background: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  }
+  .minimap-beat {
+    @apply absolute bg-accent;
+    inset-block: calc(var(--spacing) * 1.5);
+    min-width: calc(var(--spacing) * 0.75);
+    border-radius: var(--radius-hairline);
+  }
+  .minimap-beat.custom {
+    @apply bg-butter;
+  }
+  .minimap-beat.selected {
+    box-shadow: 0 0 0 calc(var(--spacing) * 0.5) var(--color-ink);
+  }
+  .minimap-empty {
+    @apply absolute inset-0 flex items-center justify-center text-size-11 text-subtle pointer-events-none;
+    letter-spacing: 0.03em;
+  }
+  .minimap-arm {
+    @apply absolute inset-y-0 bg-ink pointer-events-none;
+    width: calc(var(--spacing) * 0.5);
+    margin-left: calc(var(--spacing) * -0.25);
+  }
+  .minimap-arm.failed {
+    @apply bg-danger;
+  }
+  .minimap-window {
+    @apply absolute inset-y-0 pointer-events-none;
+    border: calc(var(--spacing) * 0.5) solid var(--color-ink);
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    transition: border-color 0.2s var(--ease-butter);
+  }
+  .minimap:not(.scrubbing):not(:focus-visible) .minimap-window {
+    border-color: color-mix(in srgb, var(--color-ink) 55%, transparent);
+  }
+  .minimap-readout {
+    @apply shrink-0 text-size-11 text-muted tabular-nums;
+    min-width: calc(var(--spacing) * 19);
+    text-align: end;
+    letter-spacing: 0.03em;
+  }
+  @variant max-studio {
     .timeline-hint {
-      display: none;
+      @apply hidden;
     }
     .sequencer-toolbar {
-      gap: 8px;
-      padding-inline: 12px;
+      @apply gap-2;
     }
   }
 </style>

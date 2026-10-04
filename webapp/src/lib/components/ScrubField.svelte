@@ -1,6 +1,5 @@
 <script module lang="ts">
-  // Svelte Bits ScrubField, adapted from the supplied TypeScript/Tailwind source.
-  // Scoped CSS replaces utilities so the host app does not need Tailwind.
+  // Svelte Bits ScrubField, adapted to the shared Tailwind token theme.
   export type ScrubFieldSize = "sm" | "md" | "lg";
   export interface ScrubFieldProps {
     label?: string;
@@ -38,9 +37,24 @@
   }
   type Modifiers = { shiftKey: boolean; altKey: boolean };
   const SIZES = {
-    sm: { height: 28, font: 12, radius: 6, width: 104 },
-    md: { height: 34, font: 13, radius: 8, width: 128 },
-    lg: { height: 44, font: 16, radius: 10, width: 160 },
+    sm: {
+      height: "calc(var(--spacing) * 7)",
+      font: "var(--text-size-12)",
+      radius: "var(--radius-scrub-sm)",
+      width: "var(--spacing-scrub-sm)",
+    },
+    md: {
+      height: "calc(var(--spacing) * 8.5)",
+      font: "var(--text-size-13)",
+      radius: "var(--radius-scrub-md)",
+      width: "var(--spacing-scrub-md)",
+    },
+    lg: {
+      height: "calc(var(--spacing) * 11)",
+      font: "var(--text-size-16)",
+      radius: "var(--radius-scrub-lg)",
+      width: "var(--spacing-scrub-lg)",
+    },
   };
   const clamp = (value: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value));
@@ -50,19 +64,6 @@
       0,
       (coefficient.split(".")[1]?.length ?? 0) - Number(exponent),
     );
-  };
-  const onColor = (hex: string) => {
-    const raw = hex.replace("#", "");
-    const full =
-      raw.length === 3
-        ? [...raw].map((ch) => ch + ch).join("")
-        : raw.slice(0, 6);
-    const n = parseInt(full, 16);
-    if (Number.isNaN(n)) return "#FFF7F0";
-    const yiq =
-      (((n >> 16) & 255) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) /
-      1000;
-    return yiq >= 128 ? "#14110E" : "#FFF7F0";
   };
 </script>
 
@@ -87,8 +88,8 @@
     showDelta = true,
     showDirty = false,
     showFill = true,
-    accent = "#F5EFE9",
-    chipColor = "#3A312A",
+    accent = "var(--color-accent-bright)",
+    chipColor = "var(--color-surface)",
     disabled = false,
     onChange,
     onCommit,
@@ -154,7 +155,9 @@
         : clamp((d - clamp(d, min, max)) / reach, -1, 1) * 4;
     }),
   );
-  const chipTransform = transformValue(() => `translateX(${lean.get()}px)`);
+  const chipTransform = transformValue(
+    () => `translateX(calc(var(--spacing-scrub-lean) * ${lean.get() / 4}))`,
+  );
   const fill = untrack(() =>
     transformValue(
       () =>
@@ -393,11 +396,10 @@
   aria-disabled={disabled || undefined}
   style:--sf-accent={accent}
   style:--sf-chip={chipColor}
-  style:--sf-ghost-ink={onColor(accent)}
-  style:--sf-h={`${preset.height}px`}
-  style:--sf-fs={`${preset.font}px`}
-  style:--sf-r={`${preset.radius}px`}
-  style:--sf-w={`${preset.width}px`}
+  style:--sf-h={preset.height}
+  style:--sf-fs={preset.font}
+  style:--sf-r={preset.radius}
+  style:--sf-w={preset.width}
   onpointerdown={handlePointerDown}
   onpointermove={handlePointerMove}
   onpointerup={() => end()}
@@ -439,26 +441,24 @@
     >{/if}
 </div>
 
-<style>
+<style lang="postcss">
+  @reference "../../app.css";
+
   .scrub-field {
-    position: relative;
-    display: inline-flex;
+    @apply relative inline-flex;
     height: var(--sf-h);
     width: var(--sf-w);
-    max-width: 100%;
-    align-items: center;
-    gap: 4px;
+    @apply max-w-full items-center gap-1;
     border-radius: var(--sf-r);
-    padding: 0 8px 0 4px;
+    padding: 0 calc(var(--spacing) * 2) 0 calc(var(--spacing) * 1);
     line-height: 1;
-    user-select: none;
-    isolation: isolate;
+    @apply select-none isolate;
     font: inherit;
     font-size: var(--sf-fs);
-    color: #ffffff;
+    @apply text-ink;
     background: var(--sf-chip);
-    box-shadow: 0 0 0 1px transparent;
-    cursor: ew-resize;
+    box-shadow: var(--shadow-control-ring);
+    @apply cursor-ew-resize;
     touch-action: pan-y;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
@@ -467,44 +467,38 @@
       box-shadow 200ms ease;
   }
   .scrub-field[data-dirty="true"] {
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--sf-accent) 55%, transparent);
+    box-shadow: 0 0 0 calc(var(--spacing) * 0.25)
+      color-mix(in srgb, var(--sf-accent) 55%, transparent);
     transition-duration: 0ms;
   }
   .scrub-field[data-typing="true"] {
-    cursor: text;
-    background: color-mix(in srgb, currentColor 7%, var(--sf-chip));
+    @apply cursor-text;
+    background: var(--sf-chip);
   }
   .scrub-field[data-disabled="true"] {
-    opacity: 0.5;
-    cursor: default;
+    @apply cursor-default;
   }
   .scrub-field:focus-within {
-    outline: 2px solid var(--sf-accent);
-    outline-offset: 3px;
+    outline: calc(var(--spacing) * 0.5) solid var(--sf-accent);
+    @apply outline-offset-[var(--outline-offset-focus)];
   }
   .fill-clip {
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
+    @apply pointer-events-none absolute inset-0;
     z-index: -1;
-    overflow: hidden;
+    @apply overflow-hidden;
     border-radius: inherit;
   }
   .fill {
-    position: absolute;
-    inset: 0;
+    @apply absolute inset-0;
     transform-origin: left;
     background: color-mix(in srgb, var(--sf-accent) 16%, transparent);
   }
   label {
-    display: inline-flex;
-    height: 100%;
+    @apply inline-flex h-full;
     cursor: inherit;
-    align-items: center;
-    white-space: nowrap;
-    border-radius: calc(var(--sf-r) - 2px);
-    padding-inline: 6px;
-    font-weight: 500;
+    @apply items-center whitespace-nowrap;
+    border-radius: calc(var(--sf-r) - var(--radius-hairline));
+    @apply px-1.5 font-medium;
     color: inherit;
     transition:
       color 120ms ease,
@@ -516,50 +510,42 @@
     color: inherit;
   }
   input {
-    margin: 0;
-    width: 100%;
-    min-width: 0;
-    flex: 1;
+    @apply m-0 w-full min-w-0 flex-1;
     cursor: inherit;
     border: 0;
     background: transparent;
-    padding: 0;
-    text-align: right;
+    @apply p-0 text-end;
     font: inherit;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
+    @apply font-medium tabular-nums;
     outline: 0;
     color: inherit;
     transition: color 120ms ease;
   }
   .scrub-field[data-typing="true"] input {
-    cursor: text;
+    @apply cursor-text;
   }
   .scrub-field[data-over="true"] input {
     color: inherit;
   }
   .suffix {
-    font-weight: 500;
+    @apply font-medium;
     color: inherit;
   }
   .delta {
-    pointer-events: none;
-    position: absolute;
-    top: -6px;
-    left: 0;
+    @apply pointer-events-none absolute -top-1.5;
+    inset-inline-start: 0;
     transform-origin: bottom;
-    white-space: nowrap;
-    border-radius: 999px;
-    padding: 2px 6px;
-    font-size: 11px;
+    @apply whitespace-nowrap rounded-full;
+    padding: calc(var(--spacing) * 0.5) calc(var(--spacing) * 1.5);
+    @apply text-size-11;
     line-height: 1.4;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
+    @apply font-semibold tabular-nums;
     opacity: 0;
-    color: var(--sf-ghost-ink);
+    @apply text-ink;
     translate: 0 -100%;
     scale: 0.95;
-    background: var(--sf-accent);
+    background: var(--sf-chip);
+    box-shadow: var(--shadow-control-ring);
     transition:
       opacity 125ms ease,
       scale 125ms ease;

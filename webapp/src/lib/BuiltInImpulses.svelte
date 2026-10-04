@@ -1,15 +1,44 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { EFFECTS } from "$lib/signature";
+  import type { BrushKind, PulsePreset } from "$lib/pulse-library";
 
   let {
     selectedId,
     onselect,
     ondragstart,
+    presets = [],
+    oncreate,
+    onedit,
+    onremove,
   }: {
-    selectedId: number | "pulse";
-    onselect: (id: number) => void;
-    ondragstart: (event: DragEvent, id: number) => void;
+    selectedId: BrushKind;
+    onselect: (id: BrushKind) => void;
+    ondragstart: (event: DragEvent, id: BrushKind) => void;
+    presets?: PulsePreset[];
+    oncreate: (slot: number) => void;
+    onedit: (preset: PulsePreset) => void;
+    onremove: (id: string, oncomplete: () => void) => void;
   } = $props();
+  let menuId = $state<string | null>(null);
+  let grid: HTMLDivElement;
+  function removePreset(preset: PulsePreset) {
+    menuId = null;
+    onremove(preset.id, async () => {
+      await tick();
+      const target =
+        grid.querySelector<HTMLButtonElement>(`[data-slot="${preset.slot}"]`) ??
+        grid.querySelector<HTMLButtonElement>(".impulse-empty");
+      target?.focus({ preventScroll: true });
+    });
+  }
+  function closeMenu(event: KeyboardEvent) {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    const menu = (event.currentTarget as HTMLElement).closest(".preset-menu");
+    menuId = null;
+    menu?.querySelector<HTMLButtonElement>(".preset-trigger")?.focus();
+  }
 
   const categories = [
     {
@@ -31,17 +60,30 @@
       ),
     },
   ];
-  const slots = Array.from({ length: 16 }, (_, index) => ({
-    index,
-    category: index % 4,
-    effect: categories[index % 4].effects[Math.floor(index / 4)],
-  }));
+  let slots = $derived.by(() => {
+    const highest = Math.max(-1, ...presets.map((p) => p.slot));
+    const extraRows = Math.max(0, Math.ceil((highest + 2 - 5) / 4));
+    let customSlot = 0;
+    return Array.from({ length: 16 + extraRows * 4 }, (_, index) => {
+      const effect =
+        index < 16
+          ? categories[index % 4].effects[Math.floor(index / 4)]
+          : undefined;
+      const slot = effect ? -1 : customSlot++;
+      return {
+        index,
+        category: index % 4,
+        effect,
+        slot,
+        preset: presets.find((p) => p.slot === slot),
+      };
+    });
+  });
 </script>
 
 {#snippet symbol(category: number)}
   <svg
-    width="22"
-    height="22"
+    class="size-5.5"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -69,7 +111,12 @@
     <span>{category.name}</span>
   {/each}
 </div>
-<div class="impulse-grid" role="group" aria-label="Built-in impulses">
+<div
+  bind:this={grid}
+  class="impulse-grid"
+  role="group"
+  aria-label="Built-in impulses"
+>
   {#each slots as slot (slot.index)}
     {@const effect = slot.effect}
     {#if effect}
@@ -92,97 +139,241 @@
           <small>{effect.durationMs} ms</small>
         </span>
       </button>
+    {:else if slot.preset}
+      {@const preset = slot.preset}
+      <div class="preset-tile">
+        <button
+          type="button"
+          class="impulse-pad saved-pulse"
+          class:selected={selectedId === `preset:${preset.id}`}
+          aria-label={`${preset.name}, custom pulse, ${preset.durationMs} milliseconds`}
+          aria-pressed={selectedId === `preset:${preset.id}`}
+          title={`${preset.name} · ${preset.durationMs} ms`}
+          onclick={() => onselect(`preset:${preset.id}`)}
+          draggable="true"
+          ondragstart={(event) => ondragstart(event, `preset:${preset.id}`)}
+        >
+          <svg
+            viewBox="0 0 100 40"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+            ><polyline
+              points={preset.keyframes
+                .map(
+                  (p) =>
+                    `${(p.timeMs / preset.durationMs) * 100},${40 - p.amplitudePercent * 0.4}`,
+                )
+                .join(" ")}
+            /></svg
+          >
+          <strong>{preset.name}</strong><small
+            >Custom · {preset.durationMs} ms</small
+          >
+        </button>
+        <div class="preset-menu" class:open={menuId === preset.id}>
+          <button
+            class="preset-trigger"
+            data-slot={slot.slot}
+            aria-label={`Actions for ${preset.name}`}
+            aria-expanded={menuId === preset.id}
+            aria-controls={`preset-actions-${preset.id}`}
+            onclick={() => (menuId = menuId === preset.id ? null : preset.id)}
+            onkeydown={closeMenu}
+            ><svg viewBox="0 0 24 24" aria-hidden="true"
+              ><circle cx="5" cy="12" r="1.5" /><circle
+                cx="12"
+                cy="12"
+                r="1.5"
+              /><circle cx="19" cy="12" r="1.5" /></svg
+            ></button
+          >
+          {#if menuId === preset.id}<div
+              id={`preset-actions-${preset.id}`}
+              role="group"
+              aria-label={`Actions for ${preset.name}`}
+            >
+              <button
+                onclick={() => {
+                  menuId = null;
+                  onedit(preset);
+                }}
+                onkeydown={closeMenu}>Edit</button
+              >
+              <button
+                onclick={() => {
+                  removePreset(preset);
+                }}
+                onkeydown={closeMenu}>Remove</button
+              >
+            </div>{/if}
+        </div>
+      </div>
     {:else}
-      <span class="impulse-empty" aria-hidden="true"></span>
+      <button
+        type="button"
+        class="impulse-empty"
+        data-slot={slot.slot}
+        aria-label="Create custom pulse"
+        onclick={() => oncreate(slot.slot)}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg
+        >
+      </button>
     {/if}
   {/each}
 </div>
-<p class="impulse-hint">Fill shows amplitude</p>
 
-<style>
+<style lang="postcss">
+  @reference "../app.css";
+
   .impulse-legend,
   .impulse-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px;
+    @apply grid grid-cols-4 gap-2;
   }
   .impulse-legend {
-    margin-bottom: 8px;
-    color: var(--muted);
-    font-size: 10px;
-    font-weight: 600;
-    text-align: center;
+    @apply mb-2.5 text-muted text-size-12 text-center;
+    letter-spacing: 0.03em;
   }
   .impulse-grid {
-    grid-template-rows: repeat(4, 70px);
+    grid-auto-rows: var(--spacing-rail);
   }
   .impulse-pad {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    min-width: 0;
-    padding: 5px 2px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--surface-raised);
-    color: var(--text);
+    @apply relative isolate overflow-hidden min-w-0;
+    padding: calc(var(--spacing) * 1.25) calc(var(--spacing) * 0.5);
+    border: 0;
+    border-radius: calc(var(--spacing) * 3.5);
+    @apply bg-surface-raised text-ink;
     transition:
-      border-color 150ms ease,
-      background 150ms ease;
+      box-shadow 0.3s var(--ease-butter),
+      background-color 0.3s var(--ease-butter);
+  }
+  .impulse-pad:hover:enabled {
+    transform: none;
   }
   .impulse-fill {
-    position: absolute;
+    @apply absolute;
     inset: auto 0 0;
     height: var(--amplitude);
     z-index: -1;
-    background: color-mix(in srgb, var(--accent) 24%, var(--surface-raised));
-    border-top: 1px solid
-      color-mix(in srgb, var(--accent-bright) 35%, transparent);
+    background: color-mix(
+      in srgb,
+      var(--color-accent) 28%,
+      var(--color-surface-raised)
+    );
+    transition: background-color 0.3s var(--ease-butter);
   }
   .impulse-content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
+    @apply h-full flex flex-col items-center justify-center gap-1;
   }
   .impulse-content svg {
-    color: var(--accent-bright);
-    flex: none;
+    @apply flex-none;
   }
   .impulse-content strong {
-    font-size: 11px;
+    @apply text-size-12 font-medium;
     line-height: 1;
-    font-variant-numeric: tabular-nums;
+    @apply tabular-nums;
   }
   .impulse-content small {
-    color: var(--muted);
-    font-size: 9px;
+    @apply text-muted text-size-10;
     line-height: 1;
-    white-space: nowrap;
+    @apply whitespace-nowrap;
   }
-  .impulse-pad:hover {
-    border-color: var(--accent);
-    background: var(--surface-soft);
+  .impulse-pad:hover .impulse-fill {
+    background: color-mix(
+      in srgb,
+      var(--color-accent) 55%,
+      var(--color-surface-raised)
+    );
   }
   .impulse-pad.selected {
-    border-color: var(--accent-bright);
-    box-shadow: inset 0 0 0 1px var(--accent-bright);
+    box-shadow: inset 0 0 0 calc(var(--spacing) * 0.5) var(--color-ink);
+  }
+  .impulse-pad.selected .impulse-fill {
+    @apply bg-accent;
   }
   .impulse-pad:focus-visible {
-    outline: 2px solid var(--accent-bright);
-    outline-offset: 2px;
+    outline: calc(var(--spacing) * 0.5) solid var(--color-accent-bright);
+    @apply outline-offset-[var(--outline-width-focus)];
   }
   .impulse-empty {
-    border: 1px dashed var(--line);
-    border-radius: 8px;
+    border: calc(var(--spacing) * 0.375) dashed var(--color-control-line);
+    border-radius: calc(var(--spacing) * 3.5);
+    @apply flex items-center justify-center bg-transparent text-subtle;
   }
-  .impulse-hint {
-    margin: 9px 0 0;
-    color: var(--muted);
-    font-size: 10px;
-    text-align: center;
+  .impulse-empty svg {
+    @apply size-5;
+  }
+  .impulse-empty:hover:enabled {
+    transform: none;
+    @apply text-ink border-ink bg-butter;
+    border-style: solid;
+  }
+  .preset-tile {
+    @apply relative min-w-0;
+  }
+  .saved-pulse {
+    @apply size-full flex flex-col justify-center items-center gap-1 px-1;
+    background: color-mix(
+      in srgb,
+      var(--color-butter) 45%,
+      var(--color-surface-raised)
+    );
+  }
+  .saved-pulse.selected {
+    @apply bg-butter;
+  }
+  .saved-pulse > svg {
+    @apply w-full h-4 text-ink;
+  }
+  .saved-pulse polyline {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    vector-effect: non-scaling-stroke;
+  }
+  .saved-pulse strong {
+    @apply max-w-full truncate text-size-11 font-medium;
+  }
+  .saved-pulse small {
+    @apply text-butter-ink text-size-9 whitespace-nowrap;
+  }
+  .preset-menu {
+    @apply absolute -top-1 -end-1;
+    z-index: 5;
+  }
+  .preset-menu.open {
+    z-index: 6;
+  }
+  .preset-trigger {
+    @apply size-6 flex items-center justify-center p-0 rounded-full bg-action text-action-ink cursor-pointer;
+    border: 0;
+  }
+  .preset-trigger:hover:enabled {
+    transform: none;
+  }
+  .preset-trigger svg {
+    @apply size-4 fill-current pointer-events-none;
+  }
+  .preset-trigger:focus-visible {
+    outline: var(--outline-width-focus) solid var(--color-accent-bright);
+  }
+  .preset-menu > div {
+    @apply absolute end-0 mt-1 bg-surface-raised p-1 min-w-24;
+    border-radius: calc(var(--spacing) * 3);
+    box-shadow: 0 8px 28px rgb(0 0 0 / 0.12);
+  }
+  .preset-menu > div button {
+    @apply block w-full border-0 bg-transparent text-ink text-start text-size-13 px-2.5 py-2;
+    border-radius: calc(var(--spacing) * 2);
+  }
+  .preset-menu > div button:hover {
+    transform: none;
+    @apply bg-surface;
   }
   @media (prefers-reduced-motion: reduce) {
     .impulse-pad {

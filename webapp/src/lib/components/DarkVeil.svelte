@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Renderer, Program, Mesh, Triangle, Vec2 } from "ogl";
+  import { Renderer, Program, Mesh, Triangle, Vec2, Vec3 } from "ogl";
 
   type Props = {
     hueShift?: number;
@@ -54,6 +54,7 @@ uniform float uScan;
 uniform float uScanFreq;
 uniform float uWarp;
 uniform float uBlueTint;
+uniform vec3 uTint;
 #define iTime uTime
 #define iResolution uResolution
 
@@ -109,7 +110,7 @@ void main(){
     vec3 dvOut = clamp(col.rgb, 0.0, 1.0);
     // Keep the supplied veil geometry, with an optional blue-only palette.
     float intensity = max(max(dvOut.r, dvOut.g), dvOut.b);
-    dvOut = mix(dvOut, vec3(0.12, 0.43, 1.0) * intensity, uBlueTint);
+    dvOut = mix(dvOut, uTint * intensity, uBlueTint);
     gl_FragColor = vec4(dvOut, max(max(dvOut.r, dvOut.g), dvOut.b));
 }
 `;
@@ -134,6 +135,13 @@ void main(){
 
     const gl = renderer.gl;
     gl.clearColor(0, 0, 0, 0);
+    // Computed CSS color resolves the shared theme into WebGL's RGB channels.
+    const channels = getComputedStyle(canvas).color.match(/[\d.]+/g)!;
+    const tint = new Vec3(
+      Number(channels[0]) / 255,
+      Number(channels[1]) / 255,
+      Number(channels[2]) / 255,
+    );
     const geometry = new Triangle(gl);
     const program = new Program(gl, {
       vertex,
@@ -147,6 +155,7 @@ void main(){
         uScanFreq: { value: current.scanlineFrequency },
         uWarp: { value: current.warpAmount },
         uBlueTint: { value: Number(current.blueTint) },
+        uTint: { value: tint },
       },
     });
     const mesh = new Mesh(gl, { geometry, program });
@@ -228,12 +237,8 @@ void main(){
   });
 </script>
 
-<canvas bind:this={canvas} aria-hidden="true"></canvas>
-
-<style>
-  canvas {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
-  }
-</style>
+<canvas
+  class="block h-full! w-full! text-veil"
+  bind:this={canvas}
+  aria-hidden="true"
+></canvas>

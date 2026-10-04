@@ -34,7 +34,7 @@ export class StudioSerial {
   }
   async connect(): Promise<DeviceMessage> {
     if (!StudioSerial.supported())
-      throw new Error("Web Serial needs desktop Chrome or Edge on localhost.");
+      throw new Error("Web Serial needs desktop Chrome or Edge on HTTPS or localhost.");
     this.port = await (
       navigator as Navigator & { serial: SerialApi }
     ).serial.requestPort();
