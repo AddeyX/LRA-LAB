@@ -556,8 +556,7 @@
     @apply bg-success;
     box-shadow: var(--shadow-status);
   }
-  .content,
-  .setup-view {
+  .content {
     @apply relative isolate;
   }
 
@@ -969,169 +968,6 @@
   .settings-dialog > p {
     @apply text-size-12;
   }
-  .setup-view {
-    @apply max-w-content m-auto;
-    padding: 0 var(--spacing-page-gutter) calc(var(--spacing) * 21.25);
-  }
-  .setup-exit {
-    border: calc(var(--spacing) * 0.25) solid var(--color-strong-line);
-    @apply rounded-beat;
-    padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3.5);
-    background: transparent;
-    @apply text-ink whitespace-nowrap;
-  }
-  .setup-exit span {
-    @apply ms-3;
-  }
-  .setup-layout {
-    @apply grid;
-    grid-template-columns:
-      minmax(var(--spacing-steps-min), var(--spacing-steps))
-      minmax(0, 1fr);
-    @apply gap-8.75;
-  }
-  .setup-steps {
-    @apply flex flex-col gap-1;
-  }
-  .setup-steps button {
-    @apply flex items-center gap-4 w-full;
-    padding: calc(var(--spacing) * 3.5) calc(var(--spacing) * 3.75);
-    border: calc(var(--spacing) * 0.25) solid transparent;
-    @apply rounded-beat;
-    background: transparent;
-    @apply text-muted text-start;
-  }
-  .setup-steps button span {
-    font:
-      700 var(--text-size-11) var(--font-display),
-      sans-serif;
-    @apply text-subtle;
-  }
-  .setup-steps button.current {
-    @apply bg-control border-strong-line text-ink;
-  }
-  .setup-steps button.current span {
-    @apply text-accent-bright;
-  }
-  .setup-steps button.completed {
-    @apply text-code-ink;
-  }
-  .setup-panel {
-    @apply flex flex-col min-h-setup-panel;
-    padding: clamp(calc(var(--spacing) * 6), 4vw, calc(var(--spacing) * 13.5));
-    border: calc(var(--spacing) * 0.25) solid var(--color-control-line);
-    @apply rounded-panel bg-setup;
-    box-shadow: var(--shadow-setup);
-  }
-  .setup-progress {
-    @apply flex justify-between items-center gap-5 mb-15 text-secondary;
-    font:
-      700 var(--text-size-10) var(--font-display),
-      sans-serif;
-    @apply tracking-label;
-  }
-  .setup-progress > div {
-    @apply w-setup-meter h-0.75 bg-field-line;
-  }
-  .setup-progress i {
-    @apply block w-full h-full bg-accent-bright;
-    transform-origin: left;
-    transition: transform 0.25s ease;
-  }
-  .setup-panel h2 {
-    @apply max-w-162.5;
-    margin: 0 0 calc(var(--spacing) * 4.5);
-    font:
-      600 clamp(var(--text-size-30), 3vw, var(--text-size-47))/1.1
-        var(--font-display),
-      sans-serif;
-    @apply tracking-setup;
-  }
-  .setup-panel > p {
-    max-width: 68ch;
-    margin: 0 0 calc(var(--spacing) * 5);
-    @apply text-secondary;
-    line-height: 1.7;
-  }
-  .setup-panel code {
-    @apply text-accent-bright;
-  }
-  .setup-note {
-    @apply flex flex-col gap-2.25 max-w-160;
-    margin: calc(var(--spacing) * 3.75) 0 calc(var(--spacing) * 6);
-    padding: calc(var(--spacing) * 4.5) calc(var(--spacing) * 5);
-    border: calc(var(--spacing) * 0.25) solid var(--color-strong-line);
-    @apply rounded-beat bg-field;
-    line-height: 1.55;
-  }
-  .setup-note strong {
-    @apply text-ink;
-  }
-  .setup-note span {
-    @apply text-secondary;
-  }
-  .setup-pinmap {
-    @apply max-w-125;
-    margin: calc(var(--spacing) * 3.5) 0 calc(var(--spacing) * 6);
-    border-top: calc(var(--spacing) * 0.25) solid var(--color-control-line);
-  }
-  .setup-pinmap > div {
-    @apply grid;
-    grid-template-columns: 1fr 1fr calc(var(--spacing) * 7.5) 1fr;
-    @apply gap-2.5;
-    padding: calc(var(--spacing) * 3.25) 0;
-    border-bottom: calc(var(--spacing) * 0.25) solid var(--color-control-line);
-    @apply items-center;
-  }
-  .setup-pinmap span {
-    @apply text-secondary text-size-12;
-  }
-  .setup-pinmap b {
-    font:
-      600 var(--text-size-13) var(--font-display),
-      sans-serif;
-  }
-  .setup-command {
-    @apply flex flex-col gap-2 max-w-110;
-    margin: calc(var(--spacing) * 2.5) 0 calc(var(--spacing) * 5);
-    padding: calc(var(--spacing) * 4) calc(var(--spacing) * 5);
-    @apply rounded-beat bg-code-deep;
-  }
-  .setup-panel .setup-small {
-    @apply text-size-12;
-  }
-  .setup-action {
-    @apply flex items-center flex-wrap gap-4;
-    margin: calc(var(--spacing) * 3) 0 calc(var(--spacing) * 5);
-    @apply text-secondary text-size-13;
-  }
-  .setup-error {
-    @apply mt-3.5 p-3.25 rounded-field bg-danger-raised text-danger-light;
-  }
-  .setup-ready {
-    @apply flex items-center gap-3 mt-4 text-success-ink;
-    font:
-      700 var(--text-size-12) var(--font-display),
-      sans-serif;
-    @apply tracking-ready;
-  }
-  .setup-nav {
-    @apply flex justify-between gap-3.75 mt-auto pt-12.5;
-    @apply flex-wrap;
-  }
-  .setup-nav button {
-    border: calc(var(--spacing) * 0.25) solid var(--color-strong-line);
-    @apply rounded-field;
-    padding: calc(var(--spacing) * 2.75) calc(var(--spacing) * 4.25);
-    background: transparent;
-    @apply text-ink;
-  }
-  .setup-nav .setup-next {
-    @apply bg-accent border-accent text-ink font-bold;
-  }
-  .setup-nav .setup-next:disabled {
-    @apply bg-disabled border-disabled text-secondary;
-  }
   @variant max-studio {
     .topbar {
       @apply gap-3;
@@ -1150,44 +986,6 @@
     .setup-button {
       @apply min-w-21;
     }
-    .setup-view {
-      padding: 0 calc(var(--spacing) * 4.5) calc(var(--spacing) * 16.25);
-    }
-    .setup-exit {
-      font-size: 0;
-    }
-    .setup-exit span {
-      @apply text-size-16 m-0;
-    }
-    .setup-layout {
-      @apply block;
-    }
-    .setup-steps {
-      @apply flex-row gap-1.25 overflow-x-auto;
-      margin: 0 calc(var(--spacing) * -4.5) calc(var(--spacing) * 5);
-      padding: 0 calc(var(--spacing) * 4.5) calc(var(--spacing) * 2);
-    }
-    .setup-steps button {
-      @apply w-auto whitespace-nowrap;
-      padding: calc(var(--spacing) * 2.25) calc(var(--spacing) * 2.75);
-      @apply text-size-12;
-    }
-    .setup-panel {
-      @apply min-h-setup-panel-mobile;
-      padding: calc(var(--spacing) * 6) calc(var(--spacing) * 5.5);
-    }
-    .setup-progress {
-      @apply mb-10.5;
-    }
-    .setup-progress > div {
-      @apply w-setup-meter-mobile;
-    }
-    .setup-panel h2 {
-      @apply text-size-31;
-    }
-    .setup-panel > p {
-      @apply text-size-14;
-    }
     .settings-dialog dl > div {
       @apply flex-col gap-1.25;
     }
@@ -1198,11 +996,6 @@
   @variant max-compact {
     .current-project {
       @apply hidden;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .setup-progress i {
-      transition: none;
     }
   }
   .board-button {
@@ -1419,8 +1212,5 @@
   input,
   textarea {
     @apply caret-accent-bright;
-  }
-  .setup-nav .setup-next:hover:enabled {
-    @apply bg-accent-hover;
   }
 }

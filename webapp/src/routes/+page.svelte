@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount, untrack } from "svelte";
-  import SetupView from "$lib/SetupView.svelte";
+  import SetupView from "$lib/components/setup/SetupView.svelte";
+  import { BUZZ_SIGNATURE } from "$lib/setup.svelte";
   import PulseLibrary from "$lib/components/PulseLibrary.svelte";
   import type { FileAction } from "$lib/components/header/FileMenu.svelte";
   import StudioTopBar from "$lib/components/studio/StudioTopBar.svelte";
@@ -472,6 +473,29 @@
       busy = false;
     }
   }
+  async function buzz(): Promise<boolean> {
+    if (!boardReady || !serial || busy || playing) return false;
+    const device = serial;
+    playback.prime();
+    playback.begin(structuredClone(BUZZ_SIGNATURE), "board");
+    error = "";
+    busy = true;
+    try {
+      if (await device.play(BUZZ_SIGNATURE)) {
+        playback.run();
+        notice = "Playing test pattern on board…";
+        return true;
+      }
+      playback.stop();
+      return false;
+    } catch (cause) {
+      playback.stop("failed");
+      error = cause instanceof Error ? cause.message : "Test pattern failed.";
+      return false;
+    } finally {
+      busy = false;
+    }
+  }
   async function stop() {
     if (!playing) return;
     if (playback.source === "simulation" || !serial) {
@@ -600,12 +624,15 @@
     <SetupView
       {connected}
       {calibrated}
+      {calibrating}
       {busy}
-      {notice}
+      playing={boardPlaying}
       {error}
-      onConnect={connect}
-      onCalibrate={calibrate}
-      onExit={() => (view = "studio")}
+      {firmwareProfile}
+      onconnect={connect}
+      oncalibrate={calibrate}
+      onbuzz={buzz}
+      onexit={() => (view = "studio")}
     />
   {:else}
     <div class="lab-grid">
@@ -658,7 +685,7 @@
       </LibraryCard>
     </div>
   {/if}
-  {#if error}
+  {#if error && view !== "setup"}
     <ErrorToast message={error} ondismiss={() => (error = "")} />
   {:else if libraryToast}
     <ErrorToast

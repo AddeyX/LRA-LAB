@@ -72,14 +72,14 @@
     fill: currentColor;
   }
   @media (min-width: 62.5rem) {
-    .lab-frame:has(:global(.lab-grid)) {
+    .lab-frame:has(:global(.lab-grid), :global(.setup-grid)) {
       height: 100svh;
       min-height: 36rem;
     }
-    .lab-frame:has(:global(.lab-grid)) .lab-page {
+    .lab-frame:has(:global(.lab-grid), :global(.setup-grid)) .lab-page {
       min-height: 0;
     }
-    .lab-frame:has(:global(.lab-grid)) .lab-footer {
+    .lab-frame:has(:global(.lab-grid), :global(.setup-grid)) .lab-footer {
       padding-block: 16px;
     }
   }
