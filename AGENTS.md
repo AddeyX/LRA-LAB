@@ -1,3 +1,5 @@
-# Web App Rules
+# Global Laws
 
-Do not override app.css styling unless given confirmation by user
+- Bug fixes require regression tests.
+- Do not override app.css styling unless given confirmation by user
+- Only commit if user explicitly requests one
